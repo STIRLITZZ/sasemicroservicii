@@ -34,7 +34,11 @@ services:
       - "8010:8000"  # Expune portul 8000 al containerului pe 8010
     restart: unless-stopped
     networks:
-      - datejuridice_net
+      datejuridice_net:
+        aliases:
+          - ms-case-extractor
+          - ms_case_extractor
+
 
   ms_ingestion_web:
     build: ./ms_ingestion_web
@@ -45,6 +49,12 @@ services:
       KAFKA_BOOTSTRAP: kafka:9092
     ports:
       - "8000:8000"
+    networks:
+      datejuridice_net:
+        aliases:
+          - ms_ingestion_web
+          - ms-ingestion-web
+
 
   ms_dataquality:
     build: ./ms_dataquality
