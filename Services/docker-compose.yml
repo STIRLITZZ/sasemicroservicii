@@ -65,6 +65,29 @@ services:
       - ./data/pdf:/data/pdf
       - ./data/txt:/data/txt
 
+  ms_bff:
+    build: ./ms_bff
+    container_name: ms_bff
+    depends_on:
+      - ms_ingestion_web
+      - ms_case_extractor
+    environment:
+      CASE_EXTRACTOR_URL: http://ms-case-extractor:8000
+      INGESTION_URL: http://ms_ingestion_web:8000
+    ports:
+      - "8081:8081"
+    networks:
+      - datejuridice_net
+
+  web_ui:
+    build: ./web_ui
+    container_name: web_ui
+    depends_on:
+      - ms_bff
+    ports:
+      - "8080:80"
+    networks:
+      - datejuridice_net
 networks:
   datejuridice_net:
     driver: bridge

@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Date Juridice – Dashboard</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0b1220; color:#e6edf3; margin:0}
+    .wrap{max-width:1100px; margin:0 auto; padding:24px}
+    .grid{display:grid; gap:16px}
+    .grid2{grid-template-columns:1fr 1fr}
+    .card{background:#0f1a2e; border:1px solid #23314d; border-radius:14px; padding:16px}
+    h1{margin:0 0 10px 0; font-size:22px}
+    h2{margin:0 0 10px 0; font-size:16px; color:#b7c5ff}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    input,button{border-radius:10px; border:1px solid #2a3a5e; background:#0b1220; color:#e6edf3; padding:10px 12px}
+    button{cursor:pointer; background:#1b2f5b}
+    button:hover{background:#25407a}
+    .pill{display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #2a3a5e}
+    .ok{color:#4cffb0}
+    .bad{color:#ff6b6b}
+    pre{white-space:pre-wrap; word-break:break-word; background:#081024; border:1px solid #23314d; padding:12px; border-radius:12px; max-height:360px; overflow:auto}
+    .muted{color:#98a6c7; font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Date Juridice – Interfață</h1>
+    <div class="muted">UI → Gateway (/api) → microservicii (extractor + ingestion)</div>
+
+    <div class="grid grid2" style="margin-top:16px">
+      <div class="card">
+        <h2>Status servicii</h2>
+        <div class="row">
+          <button onclick="health()">Check</button>
+          <span id="svcPills"></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Ingestion /run</h2>
+        <div class="row">
+          <input id="dateRange" style="min-width:320px" placeholder='ex: 2025-12-06 TO 2025-12-12' />
+          <button onclick="runIngestion()">Rulează</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Apelează ms_ingestion_web prin gateway.</div>
+      </div>
+    </div>
+
+    <div class="grid" style="margin-top:16px">
+      <div class="card">
+        <h2>Extract TXT (dosar)</h2>
+        <div class="row">
+          <input type="file" id="txtFile" />
+          <button onclick="extractTxt()">Extrage</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Încarci TXT → primești JSON/text cu date extrase.</div>
+      </div>
+
+      <div class="card">
+        <h2>Output</h2>
+        <pre id="out">{}</pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const out = (x) => document.getElementById("out").textContent = x;
+
+    async function health(){
+      const r = await fetch("/api/health");
+      const j = await r.json();
+      const pills = [];
+      for (const [k,v] of Object.entries(j)){
+        const ok = v.ok ? "ok" : "bad";
+        pills.push(`<span class="pill ${ok}">${k}: ${v.ok ? "OK" : "DOWN"} (${v.status ?? "?"})</span>`);
+      }
+      document.getElementById("svcPills").innerHTML = pills.join(" ");
+      out(JSON.stringify(j, null, 2));
+    }
+
+    async function runIngestion(){
+      const dr = document.getElementById("dateRange").value.trim();
+      const r = await fetch(`/api/ingestion/run?date_range=${encodeURIComponent(dr)}`, { method:"POST" });
+      out(await r.text());
+    }
+
+    async function extractTxt(){
+      const f = document.getElementById("txtFile").files[0];
+      if(!f){ out("Alege un fișier TXT."); return; }
+      const fd = new FormData();
+      fd.append("file", f);
+      const r = await fetch("/api/extract/txt", { method:"POST", body: fd });
+      out(await r.text());
+    }
+  </script>
+</body>
+</html>
