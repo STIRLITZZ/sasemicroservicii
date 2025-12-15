@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  ms_case_extractor:
+    build: ./ms-case-extractor
+    container_name: ms-case-extractor
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    ports:
+      - "8010:8000"  # Expune portul 8000 al containerului pe 8010
+    restart: unless-stopped
+    networks:
+      - datejuridice_net
+
+  ms_ingestion_web:
+    build: ./ms_ingestion_web
+    container_name: ms_ingestion_web
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    ports:
+      - "8000:8000"
+
+  ms_dataquality:
+    build: ./ms_dataquality
+    container_name: ms_dataquality
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+
+  ms_pdftext:
+    build: ./ms_pdftext
+    container_name: ms_pdftext
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    volumes:
+      - ./data/pdf:/data/pdf
+      - ./data/txt:/data/txt
+
+networks:
+  datejuridice_net:
+    driver: bridge
