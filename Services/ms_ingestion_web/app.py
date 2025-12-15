@@ -1,30 +1,61 @@
-import os
-from fastapi import FastAPI
-from scraper import scrape
-from producer import make_producer, send
+import asyncio
+import uuid
+from fastapi import FastAPI, BackgroundTasks
+from pydantic import BaseModel
 
-KAFKA_BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
-TOPIC_RAW = "court.raw"
+from scraper_async import scrape_async
 
-app = FastAPI(title="MS Ingestion Web")
+app = FastAPI()
 
-producer = make_producer(KAFKA_BOOTSTRAP)
+JOBS: dict[str, dict] = {}
 
+class JobStart(BaseModel):
+    date_range: str
+
+@app.get("/health")
+def health():
+    return {"ok": True}
 
 @app.post("/run")
-def run(date_range: str):
+async def run(date_range: str):
     """
-    Exemple:
-    date_range = "2025-12-06 TO 2025-12-12"
+    Nu mai procesează aici “greu”.
+    Pornește job și întoarce imediat job_id.
     """
-    sent = 0
-    for event in scrape(date_range):
-        send(producer, TOPIC_RAW, event)
-        sent += 1
+    job_id = str(uuid.uuid4())
+    JOBS[job_id] = {"status": "queued", "count": 0, "error": None}
 
-    producer.flush()
-    return {
-        "status": "OK",
-        "events_sent": sent,
-        "topic": TOPIC_RAW
-    }
+    async def worker():
+        try:
+            JOBS[job_id]["status"] = "running"
+            items = await scrape_async(date_range=date_range, concurrency=6)
+            JOBS[job_id]["status"] = "done"
+            JOBS[job_id]["count"] = len(items)
+            JOBS[job_id]["result"] = items[:500]  # limită (sau salvezi în MinIO/DB)
+        except Exception as e:
+            JOBS[job_id]["status"] = "error"
+            JOBS[job_id]["error"] = str(e)
+
+    # rulează în fundal (fără să blochezi requestul)
+    asyncio.create_task(worker())
+
+    return {"job_id": job_id, "status": "queued"}
+
+@app.get("/jobs/{job_id}")
+def job_status(job_id: str):
+    return JOBS.get(job_id, {"status": "not_found"})
+
+async def download_pdf(client: httpx.AsyncClient, url: str) -> bytes:
+    r = await client.get(url)
+    r.raise_for_status()
+    return r.content
+
+async def download_many(urls: list[str], concurrency: int = 8) -> list[bytes]:
+    sem = asyncio.Semaphore(concurrency)
+    limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
+
+    async with httpx.AsyncClient(timeout=60.0, limits=limits) as client:
+        async def one(u):
+            async with sem:
+                return await download_pdf(client, u)
+        return await asyncio.gather(*(one(u) for u in urls))

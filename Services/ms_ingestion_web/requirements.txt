@@ -3,3 +3,5 @@ uvicorn
 requests
 beautifulsoup4
 confluent-kafka
+httpx==0.27.2
+beautifulsoup4==4.12.3
