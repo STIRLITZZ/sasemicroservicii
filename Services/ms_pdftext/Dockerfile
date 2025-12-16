@@ -1,8 +1,9 @@
 FROM python:3.11-slim
 
 WORKDIR /app
-RUN pip install --no-cache-dir requests pypdf confluent-kafka
+RUN pip install --no-cache-dir httpx pypdf confluent-kafka
 
 COPY . .
 
-CMD ["python", "consumer.py"]
+# Use async consumer by default
+CMD ["python", "consumer_async.py"]

@@ -42,9 +42,10 @@ services:
       - ms_pdftext
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
+      EXTRACTOR_CONCURRENCY: 10
     volumes:
       - ./data/txt:/data/txt:ro
-    command: ["python", "consumer.py"]
+    command: ["python", "consumer_async.py"]
     restart: unless-stopped
     networks:
       - datejuridice_net
@@ -75,6 +76,7 @@ services:
       - kafka
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
+      PDF_CONCURRENCY: 5  # Procesează 5 PDF-uri în paralel
     volumes:
       - ./data/pdf:/data/pdf
       - ./data/txt:/data/txt
@@ -87,6 +89,8 @@ services:
       - kafka
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
+      STORAGE_BATCH_SIZE: 10  # Scrie la fiecare 10 mesaje
+      STORAGE_BATCH_TIMEOUT: 5  # sau la fiecare 5 secunde
     volumes:
       - ./data/enriched:/data/enriched
     restart: unless-stopped
