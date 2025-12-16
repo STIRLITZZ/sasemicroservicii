@@ -124,6 +124,16 @@
       </div>
     </div>
 
+    <!-- DWH Insights -->
+    <div class="card" style="margin-top:20px; display:none" id="dwhInsights">
+      <h2>💡 Insights DWH (Data Warehouse)</h2>
+      <p class="muted">Analize automate generate din warehouse</p>
+      <div id="insightsList" style="margin-top:12px"></div>
+      <div class="row" style="margin-top:16px">
+        <button onclick="loadDWHInsights()">🔄 Reîncarcă Insights</button>
+      </div>
+    </div>
+
     <!-- Charts Grid -->
     <div class="grid grid3" style="margin-top:20px; display:none" id="chartsSection">
       <div class="card">
@@ -548,8 +558,39 @@
           renderStats(data.cases);
           renderExtractedTable(data.cases);
         }
+        // Încarcă și insights DWH
+        await loadDWHInsights();
       } catch(e) {
         out("❌ Eroare: " + e.message);
+      }
+    }
+
+    async function loadDWHInsights(){
+      try {
+        const r = await fetch("/api/dwh/insights");
+        const data = await r.json();
+
+        const insightsList = document.getElementById("insightsList");
+        insightsList.innerHTML = "";
+
+        if(data.insights && data.insights.length > 0){
+          data.insights.forEach(insight => {
+            const div = document.createElement("div");
+            div.className = "pill ok";
+            div.style.marginBottom = "8px";
+            div.style.display = "flex";
+            div.style.justifyContent = "space-between";
+            div.style.width = "100%";
+            div.innerHTML = `
+              <span>${insight.message}</span>
+              <span class="badge badge-blue">${insight.value}</span>
+            `;
+            insightsList.appendChild(div);
+          });
+          document.getElementById("dwhInsights").style.display = "block";
+        }
+      } catch(e) {
+        console.error("DWH insights error:", e);
       }
     }
 
