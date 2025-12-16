@@ -11,6 +11,7 @@ const CASE_EXTRACTOR_URL = process.env.CASE_EXTRACTOR_URL;
 const INGESTION_URL = process.env.INGESTION_URL;
 
 const TXT_DIR = process.env.TXT_DIR || "/data/txt";
+const ENRICHED_FILE = process.env.ENRICHED_FILE || "/data/enriched/cases.json";
 
 app.get("/api/health", async (req, res) => {
   const targets = [
@@ -98,5 +99,33 @@ app.get("/api/text/by-dosar", async (req, res) => {
   } catch (e) {
     // dacă încă nu a fost procesat de ms_pdftext (Kafka), o să pice aici
     res.status(404).json({ error: "text not ready / file not found", details: String(e) });
+  }
+});
+
+// Endpoint pentru date enriched (procesate complet)
+app.get("/api/cases", async (req, res) => {
+  try {
+    const data = await fs.readFile(ENRICHED_FILE, "utf-8");
+    const cases = JSON.parse(data);
+
+    // Opțional: filtrare și paginare
+    const limit = parseInt(req.query.limit) || 1000;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const filtered = cases.slice(offset, offset + limit);
+
+    res.json({
+      total: cases.length,
+      limit,
+      offset,
+      cases: filtered
+    });
+  } catch (e) {
+    if (e.code === "ENOENT") {
+      // Fișierul nu există încă
+      res.json({ total: 0, cases: [] });
+    } else {
+      res.status(500).json({ error: "Could not read cases", details: String(e) });
+    }
   }
 });

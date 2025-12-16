@@ -35,6 +35,20 @@ services:
     networks:
       - datejuridice_net
 
+  ms_case_extractor_consumer:
+    build: ./ms-case-extractor
+    depends_on:
+      - kafka
+      - ms_pdftext
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    volumes:
+      - ./data/txt:/data/txt:ro
+    command: ["python", "consumer.py"]
+    restart: unless-stopped
+    networks:
+      - datejuridice_net
+
   ms_ingestion_web:
     build: ./ms_ingestion_web
     depends_on:
@@ -67,6 +81,18 @@ services:
     networks:
       - datejuridice_net
 
+  ms_storage:
+    build: ./ms_storage
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    volumes:
+      - ./data/enriched:/data/enriched
+    restart: unless-stopped
+    networks:
+      - datejuridice_net
+
   ms_bff:
     build: ./ms_bff
     depends_on:
@@ -76,9 +102,11 @@ services:
       CASE_EXTRACTOR_URL: http://ms_case_extractor:8000
       INGESTION_URL: http://ms_ingestion_web:8000
       TXT_DIR: /data/txt
+      ENRICHED_FILE: /data/enriched/cases.json
     volumes:
       - ./data/txt:/data/txt:ro
       - ./data/pdf:/data/pdf:ro
+      - ./data/enriched:/data/enriched:ro
     ports:
       - "8081:8081"
     restart: unless-stopped

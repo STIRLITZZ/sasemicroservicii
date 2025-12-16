@@ -35,6 +35,10 @@
           <button onclick="health()">Check</button>
           <span id="svcPills"></span>
         </div>
+        <div class="row" style="margin-top:12px">
+          <button onclick="loadEnrichedCases()">Încarcă date procesate</button>
+          <span class="muted">Afișează toate cazurile din baza de date</span>
+        </div>
       </div>
 
       <div class="card">
@@ -138,19 +142,22 @@
       const rows = Array.isArray(data) ? data : [data];
 
       for (const d of rows) {
+        // Dacă sunt date enriched din pipeline, folosește câmpul extracted
+        const ext = d.extracted || d;
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${esc(d.instanta)}</td>
-          <td>${esc(d.localitate)}</td>
-          <td>${esc(d.dosar_nr ?? "—")}</td>
-          <td>${esc(d.doc_type)}</td>
-          <td>${esc(d.domain)}</td>
-          <td>${esc(d.judecator ?? "—")}</td>
-          <td>${esc(d.avocat ?? "—")}</td>
-          <td>${esc((d.articole || []).join(", "))}</td>
-          <td>${esc(d.procedura)}</td>
-          <td><b>${esc(d.solutie)}</b></td>
-          <td>${esc(d.data_pronuntarii)}</td>
+          <td>${esc(ext.instanta || d.instanta)}</td>
+          <td>${esc(ext.localitate || d.localitate)}</td>
+          <td>${esc(ext.dosar_nr || d.dosar)}</td>
+          <td>${esc(ext.doc_type)}</td>
+          <td>${esc(ext.domain)}</td>
+          <td>${esc(ext.judecator ?? "—")}</td>
+          <td>${esc(ext.avocat ?? "—")}</td>
+          <td>${esc((ext.articole || []).join(", "))}</td>
+          <td>${esc(ext.procedura)}</td>
+          <td><b>${esc(ext.solutie)}</b></td>
+          <td>${esc(ext.data_pronuntarii || d.data_pron)}</td>
         `;
         tbody.appendChild(tr);
       }
@@ -192,7 +199,10 @@
     }
 
     function renderStats(items){
-      const byCourt = groupCount(items, x => x.instanta);
+      const byCourt = groupCount(items, x => {
+        const ext = x.extracted || x;
+        return ext.instanta || x.instanta;
+      });
       drawBarChart(
         "chartByCourt",
         "Hotărâri pe instanțe",
@@ -211,13 +221,34 @@
         out(JSON.stringify(j,null,2));
 
         if(j.status==="done"){
-          renderStats(j.result || []);
+          // Așteaptă puțin ca datele să fie procesate prin pipeline
+          out("Scraping done. Waiting for processing...");
+          await new Promise(r=>setTimeout(r,3000));
+
+          // Încarcă datele enriched
+          await loadEnrichedCases();
           return;
         }
         if(j.status==="error") return;
         await new Promise(r=>setTimeout(r,1000));
       }
       out("Timeout job.");
+    }
+
+    async function loadEnrichedCases(){
+      try {
+        const r = await fetch("/api/cases?limit=500");
+        const data = await r.json();
+
+        out(`Loaded ${data.total} enriched cases`);
+
+        if(data.cases && data.cases.length > 0){
+          renderStats(data.cases);
+          renderExtractedTable(data.cases);
+        }
+      } catch(e) {
+        out("Error loading enriched cases: " + e.message);
+      }
     }
 
      async function runIngestion(){
