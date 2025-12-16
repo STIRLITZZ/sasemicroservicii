@@ -1,17 +1,15 @@
-version: "3.9"
-
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.1
-    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
     ports:
       - "2181:2181"
+    networks:
+      - datejuridice_net
 
   kafka:
     image: confluentinc/cp-kafka:7.6.1
-    container_name: kafka
     depends_on:
       - zookeeper
     ports:
@@ -22,27 +20,23 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - datejuridice_net
 
   ms_case_extractor:
     build: ./ms-case-extractor
-    container_name: ms-case-extractor
     depends_on:
       - kafka
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
     ports:
-      - "8010:8000"  # Expune portul 8000 al containerului pe 8010
+      - "8010:8000"
     restart: unless-stopped
     networks:
-      datejuridice_net:
-        aliases:
-          - ms-case-extractor
-          - ms_case_extractor
-
+      - datejuridice_net
 
   ms_ingestion_web:
     build: ./ms_ingestion_web
-    container_name: ms_ingestion_web
     depends_on:
       - kafka
     environment:
@@ -50,23 +44,19 @@ services:
     ports:
       - "8000:8000"
     networks:
-      datejuridice_net:
-        aliases:
-          - ms_ingestion_web
-          - ms-ingestion-web
-
+      - datejuridice_net
 
   ms_dataquality:
     build: ./ms_dataquality
-    container_name: ms_dataquality
     depends_on:
       - kafka
     environment:
       KAFKA_BOOTSTRAP: kafka:9092
+    networks:
+      - datejuridice_net
 
   ms_pdftext:
     build: ./ms_pdftext
-    container_name: ms_pdftext
     depends_on:
       - kafka
     environment:
@@ -74,30 +64,36 @@ services:
     volumes:
       - ./data/pdf:/data/pdf
       - ./data/txt:/data/txt
+    networks:
+      - datejuridice_net
 
   ms_bff:
     build: ./ms_bff
-    container_name: ms_bff
     depends_on:
       - ms_ingestion_web
       - ms_case_extractor
     environment:
-      CASE_EXTRACTOR_URL: http://ms-case-extractor:8000
+      CASE_EXTRACTOR_URL: http://ms_case_extractor:8000
       INGESTION_URL: http://ms_ingestion_web:8000
+      TXT_DIR: /data/txt
+    volumes:
+      - ./data/txt:/data/txt:ro
+      - ./data/pdf:/data/pdf:ro
     ports:
       - "8081:8081"
+    restart: unless-stopped
     networks:
       - datejuridice_net
 
   web_ui:
     build: ./web_ui
-    container_name: web_ui
     depends_on:
       - ms_bff
     ports:
       - "8080:80"
     networks:
       - datejuridice_net
+
 networks:
   datejuridice_net:
     driver: bridge

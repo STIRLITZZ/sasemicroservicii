@@ -38,13 +38,36 @@
       </div>
 
       <div class="card">
-        <h2>Ingestion /run</h2>
-        <div class="row">
-          <input id="dateRange" style="min-width:320px" placeholder='ex: 2025-12-06 TO 2025-12-12' />
-          <button onclick="runIngestion()">Rulează</button>
+          <h2>Ingestion /run</h2>
+
+          <div class="row" style="gap:14px">
+            <div class="pill">
+              <span>Data</span>
+              <label style="display:inline-flex;align-items:center;gap:8px">
+                <input id="modeToggle" type="checkbox" onchange="toggleMode()" />
+                <span class="muted">Perioadă</span>
+              </label>
+            </div>
+
+            <!-- Single date -->
+            <div id="singleWrap" class="row">
+              <input id="singleDate" type="date" />
+            </div>
+
+            <!-- Range -->
+            <div id="rangeWrap" class="row" style="display:none">
+              <input id="startDate" type="date" />
+              <span class="muted">→</span>
+              <input id="endDate" type="date" />
+            </div>
+
+            <button onclick="runIngestion()">Rulează</button>
+          </div>
+
+          <div class="muted" style="margin-top:8px">
+            Apelează ms_ingestion_web prin gateway.
+          </div>
         </div>
-        <div class="muted" style="margin-top:8px">Apelează ms_ingestion_web prin gateway.</div>
-      </div>
     </div>
 
     <div class="grid" style="margin-top:16px">
@@ -61,38 +84,231 @@
         <h2>Output</h2>
         <pre id="out">{}</pre>
       </div>
+    <div class="card">
+      <h2>Statistici</h2>
+      <canvas id="chartByDay" height="120"></canvas>
+      <canvas id="chartByCourt" height="120" style="margin-top:24px"></canvas>
+    </div>
+
+  <div class="card">
+  <h2>Tabel – Date extrase</h2>
+  <div style="overflow:auto; max-height:420px">
+    <table id="dataTable" width="100%" border="1" cellpadding="6" cellspacing="0">
+      <thead>
+        <tr>
+          <th>Instanța</th>
+          <th>Localitate</th>
+          <th>Dosar</th>
+          <th>Tip document</th>
+          <th>Domeniu</th>
+          <th>Judecător</th>
+          <th>Avocat</th>
+          <th>Articole</th>
+          <th>Procedura</th>
+          <th>Soluție</th>
+          <th>Data pronunțării</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</div>
+
     </div>
   </div>
 
   <script>
     const out = (x) => document.getElementById("out").textContent = x;
 
+    function esc(v){
+      return (v ?? "")
+        .toString()
+        .replace(/&/g,"&amp;")
+        .replace(/</g,"&lt;")
+        .replace(/>/g,"&gt;");
+    }
+
+    /* =======================
+       TABEL DATE EXTRASE TXT
+       ======================= */
+    function renderExtractedTable(data) {
+      const tbody = document.querySelector("#dataTable tbody");
+      tbody.innerHTML = "";
+
+      const rows = Array.isArray(data) ? data : [data];
+
+      for (const d of rows) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${esc(d.instanta)}</td>
+          <td>${esc(d.localitate)}</td>
+          <td>${esc(d.dosar_nr ?? "—")}</td>
+          <td>${esc(d.doc_type)}</td>
+          <td>${esc(d.domain)}</td>
+          <td>${esc(d.judecator ?? "—")}</td>
+          <td>${esc(d.avocat ?? "—")}</td>
+          <td>${esc((d.articole || []).join(", "))}</td>
+          <td>${esc(d.procedura)}</td>
+          <td><b>${esc(d.solutie)}</b></td>
+          <td>${esc(d.data_pronuntarii)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    /* =======================
+       STATISTICI
+       ======================= */
+    function groupCount(items, keyFn) {
+      const m = new Map();
+      for (const it of items) {
+        const k = keyFn(it) ?? "N/A";
+        m.set(k, (m.get(k) || 0) + 1);
+      }
+      return [...m.entries()].sort((a,b)=>b[1]-a[1]);
+    }
+
+    function drawBarChart(canvasId, title, labels, values) {
+      const c = document.getElementById(canvasId);
+      const ctx = c.getContext("2d");
+      const W = c.width = c.clientWidth;
+      const H = c.height = 140;
+
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = "#e6edf3";
+      ctx.fillText(title, 10, 16);
+
+      const maxV = Math.max(1, ...values);
+      const pad = 30;
+      const bw = (W - pad*2) / labels.length;
+
+      labels.forEach((l,i)=>{
+        const h = (values[i]/maxV)*(H-60);
+        ctx.fillStyle="#25407a";
+        ctx.fillRect(pad+i*bw, H-30-h, bw-6, h);
+        ctx.fillStyle="#98a6c7";
+        ctx.fillText(l.slice(0,12), pad+i*bw, H-10);
+      });
+    }
+
+    function renderStats(items){
+      const byCourt = groupCount(items, x => x.instanta);
+      drawBarChart(
+        "chartByCourt",
+        "Hotărâri pe instanțe",
+        byCourt.slice(0,10).map(x=>x[0]),
+        byCourt.slice(0,10).map(x=>x[1])
+      );
+    }
+
+    /* =======================
+       INGESTION JOB
+       ======================= */
+    async function pollJob(jobId){
+      for(let i=0;i<180;i++){
+        const r = await fetch(`/api/ingestion/jobs/${jobId}`);
+        const j = await r.json();
+        out(JSON.stringify(j,null,2));
+
+        if(j.status==="done"){
+          renderStats(j.result || []);
+          return;
+        }
+        if(j.status==="error") return;
+        await new Promise(r=>setTimeout(r,1000));
+      }
+      out("Timeout job.");
+    }
+
+     async function runIngestion(){
+      try {
+        const dr = getDateRangeString();
+
+        const r = await fetch(`/api/ingestion/run?date_range=${encodeURIComponent(dr)}`, {
+          method:"POST",
+          cache:"no-store"
+        });
+
+        const txt = await r.text();
+        out(txt);
+
+        // parsează job_id și pornește poll
+        try {
+          const j = JSON.parse(txt);
+          if (j.job_id) await pollJob(j.job_id);
+        } catch (_) {}
+
+      } catch (e) {
+        out(String(e.message || e));
+      }
+    }
+
+    /* =======================
+       EXTRACT TXT
+       ======================= */
+    async function extractTxt(){
+      const f = document.getElementById("txtFile").files[0];
+      if(!f){ alert("Alege fișier TXT"); return; }
+
+      const fd = new FormData();
+      fd.append("file", f);
+
+      const r = await fetch("/api/extract/txt", {method:"POST", body:fd});
+      const data = await r.json();
+
+      out(JSON.stringify(data,null,2));
+      renderExtractedTable(data);
+    }
+
+    /* =======================
+       HEALTH
+       ======================= */
     async function health(){
       const r = await fetch("/api/health");
       const j = await r.json();
-      const pills = [];
-      for (const [k,v] of Object.entries(j)){
-        const ok = v.ok ? "ok" : "bad";
-        pills.push(`<span class="pill ${ok}">${k}: ${v.ok ? "OK" : "DOWN"} (${v.status ?? "?"})</span>`);
+      document.getElementById("svcPills").innerHTML =
+        Object.entries(j).map(([k,v]) =>
+          `<span class="pill ${v.ok?"ok":"bad"}">${k}: ${v.ok?"OK":"DOWN"}</span>`
+        ).join(" ");
+      out(JSON.stringify(j,null,2));
+    }
+
+
+      function toggleMode() {
+      const isRange = document.getElementById("modeToggle").checked;
+      document.getElementById("singleWrap").style.display = isRange ? "none" : "flex";
+      document.getElementById("rangeWrap").style.display  = isRange ? "flex" : "none";
+    }
+
+    function pad2(n){ return String(n).padStart(2,"0"); }
+    function todayISO(){
+      const d = new Date();
+      return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    }
+
+    function getDateRangeString() {
+      const isRange = document.getElementById("modeToggle").checked;
+
+      if (!isRange) {
+        const d = document.getElementById("singleDate").value;
+        if (!d) throw new Error("Selectează o dată.");
+        return `${d} TO ${d}`;
       }
-      document.getElementById("svcPills").innerHTML = pills.join(" ");
-      out(JSON.stringify(j, null, 2));
+
+      const s = document.getElementById("startDate").value;
+      const e = document.getElementById("endDate").value;
+      if (!s || !e) throw new Error("Selectează data de început și sfârșit.");
+      if (s > e) throw new Error("Interval invalid: start > end.");
+      return `${s} TO ${e}`;
     }
 
-    async function runIngestion(){
-      const dr = document.getElementById("dateRange").value.trim();
-      const r = await fetch(`/api/ingestion/run?date_range=${encodeURIComponent(dr)}`, { method:"POST" });
-      out(await r.text());
-    }
-
-    async function extractTxt(){
-      const f = document.getElementById("txtFile").files[0];
-      if(!f){ out("Alege un fișier TXT."); return; }
-      const fd = new FormData();
-      fd.append("file", f);
-      const r = await fetch("/api/extract/txt", { method:"POST", body: fd });
-      out(await r.text());
-    }
-  </script>
+    // setează default la încărcare
+    window.addEventListener("DOMContentLoaded", () => {
+      const t = todayISO();
+      document.getElementById("singleDate").value = t;
+      document.getElementById("startDate").value = t;
+      document.getElementById("endDate").value = t;
+    });
+    </script>
 </body>
 </html>

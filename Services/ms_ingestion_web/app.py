@@ -44,18 +44,3 @@ async def run(date_range: str):
 @app.get("/jobs/{job_id}")
 def job_status(job_id: str):
     return JOBS.get(job_id, {"status": "not_found"})
-
-async def download_pdf(client: httpx.AsyncClient, url: str) -> bytes:
-    r = await client.get(url)
-    r.raise_for_status()
-    return r.content
-
-async def download_many(urls: list[str], concurrency: int = 8) -> list[bytes]:
-    sem = asyncio.Semaphore(concurrency)
-    limits = httpx.Limits(max_connections=concurrency, max_keepalive_connections=concurrency)
-
-    async with httpx.AsyncClient(timeout=60.0, limits=limits) as client:
-        async def one(u):
-            async with sem:
-                return await download_pdf(client, u)
-        return await asyncio.gather(*(one(u) for u in urls))
