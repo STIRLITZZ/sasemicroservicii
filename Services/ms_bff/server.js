@@ -9,6 +9,7 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 const CASE_EXTRACTOR_URL = process.env.CASE_EXTRACTOR_URL;
 const INGESTION_URL = process.env.INGESTION_URL;
+const DWH_URL = process.env.DWH_URL;
 
 const TXT_DIR = process.env.TXT_DIR || "/data/txt";
 const ENRICHED_FILE = process.env.ENRICHED_FILE || "/data/enriched/cases.json";
@@ -16,7 +17,8 @@ const ENRICHED_FILE = process.env.ENRICHED_FILE || "/data/enriched/cases.json";
 app.get("/api/health", async (req, res) => {
   const targets = [
     { name: "case-extractor", url: `${CASE_EXTRACTOR_URL}/health` },
-    { name: "ingestion", url: `${INGESTION_URL}/docs` } // dacă nu ai /health la ingestion, /docs e ok ca test
+    { name: "ingestion", url: `${INGESTION_URL}/docs` },
+    { name: "dwh", url: `${DWH_URL}/health` }
   ];
 
   const out = {};
@@ -83,6 +85,70 @@ app.get("/api/pdfdata/:job_id", async (req, res) => {
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: String(e) });
+  }
+});
+
+// DWH Endpoints - proxy pentru Data Warehouse API
+app.get("/api/dwh/kpi", async (req, res) => {
+  try {
+    const r = await fetch(`${DWH_URL}/dwh/kpi`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "DWH KPI error", details: String(e) });
+  }
+});
+
+app.get("/api/dwh/trends", async (req, res) => {
+  try {
+    const limit = req.query.limit || 12;
+    const r = await fetch(`${DWH_URL}/dwh/trends/monthly?limit=${limit}`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "DWH trends error", details: String(e) });
+  }
+});
+
+app.get("/api/dwh/courts/top", async (req, res) => {
+  try {
+    const limit = req.query.limit || 10;
+    const r = await fetch(`${DWH_URL}/dwh/courts/top?limit=${limit}`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "DWH courts error", details: String(e) });
+  }
+});
+
+app.get("/api/dwh/judges/top", async (req, res) => {
+  try {
+    const limit = req.query.limit || 10;
+    const r = await fetch(`${DWH_URL}/dwh/judges/top?limit=${limit}`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "DWH judges error", details: String(e) });
+  }
+});
+
+app.get("/api/dwh/insights", async (req, res) => {
+  try {
+    const r = await fetch(`${DWH_URL}/dwh/insights`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "DWH insights error", details: String(e) });
+  }
+});
+
+app.get("/api/dwh/summary", async (req, res) => {
+  try {
+    const r = await fetch(`${DWH_URL}/dwh/stats/summary`);
+    const data = await r.json();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "DWH summary error", details: String(e) });
   }
 });
 

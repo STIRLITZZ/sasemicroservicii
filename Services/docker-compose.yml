@@ -97,14 +97,30 @@ services:
     networks:
       - datejuridice_net
 
+  ms_dwh:
+    build: ./ms_dwh
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_BOOTSTRAP: kafka:9092
+    volumes:
+      - ./data/dwh:/data/dwh
+    ports:
+      - "8020:8000"
+    restart: unless-stopped
+    networks:
+      - datejuridice_net
+
   ms_bff:
     build: ./ms_bff
     depends_on:
       - ms_ingestion_web
       - ms_case_extractor
+      - ms_dwh
     environment:
       CASE_EXTRACTOR_URL: http://ms_case_extractor:8000
       INGESTION_URL: http://ms_ingestion_web:8000
+      DWH_URL: http://ms_dwh:8000
       TXT_DIR: /data/txt
       ENRICHED_FILE: /data/enriched/cases.json
     volumes:
