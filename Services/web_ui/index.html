@@ -6,174 +6,186 @@
   <title>Date Juridice – Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0b1220; color:#e6edf3; margin:0}
-    .wrap{max-width:1400px; margin:0 auto; padding:24px}
-    .grid{display:grid; gap:16px}
+    * { box-sizing: border-box; }
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0a0e1a; color:#e6edf3; margin:0; padding:0}
+    .wrap{max-width:1600px; margin:0 auto; padding:24px}
+    .grid{display:grid; gap:20px}
     .grid2{grid-template-columns:1fr 1fr}
     .grid3{grid-template-columns:repeat(3, 1fr)}
-    .card{background:#0f1a2e; border:1px solid #23314d; border-radius:14px; padding:16px}
-    h1{margin:0 0 10px 0; font-size:22px}
-    h2{margin:0 0 16px 0; font-size:16px; color:#b7c5ff}
+    .grid4{grid-template-columns:repeat(4, 1fr)}
+    .card{background:#0f1624; border:1px solid #1e293b; border-radius:16px; padding:20px; box-shadow:0 4px 6px rgba(0,0,0,0.3)}
+    h1{margin:0 0 8px 0; font-size:28px; font-weight:700}
+    h2{margin:0 0 16px 0; font-size:18px; color:#94a3b8; font-weight:600}
+    h3{margin:0 0 12px 0; font-size:16px; color:#cbd5e1; font-weight:600}
     .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
-    input,button{border-radius:10px; border:1px solid #2a3a5e; background:#0b1220; color:#e6edf3; padding:10px 12px}
-    button{cursor:pointer; background:#1b2f5b}
-    button:hover{background:#25407a}
-    .pill{display:inline-flex; gap:8px; align-items:center; padding:6px 10px; border-radius:999px; border:1px solid #2a3a5e}
-    .ok{color:#4cffb0}
-    .bad{color:#ff6b6b}
-    pre{white-space:pre-wrap; word-break:break-word; background:#081024; border:1px solid #23314d; padding:12px; border-radius:12px; max-height:360px; overflow:auto}
-    .muted{color:#98a6c7; font-size:13px}
-    .chart-container{position:relative; height:300px; margin-top:8px}
-    .chart-container-small{position:relative; height:250px; margin-top:8px}
-    .stats-summary{display:flex; gap:16px; margin-bottom:16px; flex-wrap:wrap}
-    .stat-box{flex:1; min-width:140px; background:#081024; padding:12px 16px; border-radius:10px; border:1px solid #23314d}
-    .stat-label{font-size:12px; color:#98a6c7; margin-bottom:4px}
-    .stat-value{font-size:24px; font-weight:600; color:#4cffb0}
+    input,button,select{border-radius:8px; border:1px solid #334155; background:#1e293b; color:#e6edf3; padding:10px 14px; font-size:14px}
+    button{cursor:pointer; background:#3b82f6; border-color:#3b82f6; font-weight:500; transition:all 0.2s}
+    button:hover{background:#2563eb; transform:translateY(-1px)}
+    select{cursor:pointer}
+    .pill{display:inline-flex; gap:8px; align-items:center; padding:6px 12px; border-radius:999px; border:1px solid #334155; background:#1e293b; font-size:13px}
+    .ok{color:#10b981; border-color:#10b981}
+    .bad{color:#ef4444; border-color:#ef4444}
+    pre{white-space:pre-wrap; word-break:break-word; background:#0a0e1a; border:1px solid #1e293b; padding:16px; border-radius:12px; max-height:300px; overflow:auto; font-size:12px}
+    .muted{color:#64748b; font-size:13px}
+    .chart-container{position:relative; height:350px; margin-top:12px}
+    .chart-small{height:280px}
+    .stats-summary{display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:16px; margin-bottom:20px}
+    .stat-box{background:#1e293b; padding:16px 20px; border-radius:12px; border:1px solid #334155}
+    .stat-label{font-size:13px; color:#94a3b8; margin-bottom:6px; font-weight:500}
+    .stat-value{font-size:32px; font-weight:700; color:#3b82f6; line-height:1}
+    .stat-subtext{font-size:12px; color:#64748b; margin-top:4px}
     table{width:100%; border-collapse:collapse; font-size:13px}
-    th{background:#081024; padding:10px; text-align:left; color:#b7c5ff; font-weight:500; position:sticky; top:0}
-    td{padding:8px; border-bottom:1px solid #23314d}
-    tr:hover{background:#081024}
+    th{background:#1e293b; padding:12px; text-align:left; color:#cbd5e1; font-weight:600; position:sticky; top:0; border-bottom:2px solid #334155}
+    td{padding:10px 12px; border-bottom:1px solid #1e293b}
+    tr:hover{background:#1e293b}
+    .badge{display:inline-block; padding:4px 8px; border-radius:6px; font-size:11px; font-weight:600}
+    .badge-blue{background:#1e3a8a; color:#93c5fd}
+    .badge-green{background:#14532d; color:#86efac}
+    .badge-red{background:#7f1d1d; color:#fca5a5}
+    .badge-yellow{background:#713f12; color:#fde047}
+    .chart-builder{background:#0f1624; border:2px dashed #334155; border-radius:16px; padding:24px; margin-top:20px}
+    .builder-controls{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:20px}
+    .control-group{display:flex; flex-direction:column; gap:6px}
+    .control-label{font-size:13px; color:#94a3b8; font-weight:500}
+    #customChart{background:#1e293b; border-radius:12px; padding:16px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <h1>📊 Date Juridice – Dashboard</h1>
-    <div class="muted">UI → Gateway (/api) → microservicii (extractor + ingestion)</div>
+    <h1>📊 Dashboard Date Juridice</h1>
+    <div class="muted">Platforma de analiză și vizualizare hotărâri judecătorești</div>
 
-    <div class="grid grid2" style="margin-top:16px">
+    <div class="grid grid2" style="margin-top:20px">
       <div class="card">
-        <h2>Status servicii</h2>
+        <h2>⚙️ Control Panel</h2>
         <div class="row">
-          <button onclick="health()">Check</button>
+          <button onclick="health()">🔍 Check Status</button>
           <span id="svcPills"></span>
         </div>
         <div class="row" style="margin-top:12px">
-          <button onclick="loadEnrichedCases()">📥 Încarcă date procesate</button>
-          <span class="muted">Afișează toate cazurile din baza de date</span>
+          <button onclick="loadEnrichedCases()">📥 Încarcă Date</button>
+          <span class="muted">Afișează toate cazurile procesate</span>
         </div>
       </div>
 
       <div class="card">
-          <h2>Ingestion /run</h2>
-
-          <div class="row" style="gap:14px">
-            <div class="pill">
-              <span>Data</span>
-              <label style="display:inline-flex;align-items:center;gap:8px">
-                <input id="modeToggle" type="checkbox" onchange="toggleMode()" />
-                <span class="muted">Perioadă</span>
-              </label>
-            </div>
-
-            <!-- Single date -->
-            <div id="singleWrap" class="row">
-              <input id="singleDate" type="date" />
-            </div>
-
-            <!-- Range -->
-            <div id="rangeWrap" class="row" style="display:none">
-              <input id="startDate" type="date" />
-              <span class="muted">→</span>
-              <input id="endDate" type="date" />
-            </div>
-
-            <button onclick="runIngestion()">▶️ Rulează</button>
+        <h2>🔄 Scraping Date Noi</h2>
+        <div class="row" style="gap:12px">
+          <div class="pill">
+            <input id="modeToggle" type="checkbox" onchange="toggleMode()" />
+            <span>Interval perioadă</span>
           </div>
-
-          <div class="muted" style="margin-top:8px">
-            Apelează ms_ingestion_web prin gateway.
+          <div id="singleWrap" class="row">
+            <input id="singleDate" type="date" />
           </div>
+          <div id="rangeWrap" class="row" style="display:none">
+            <input id="startDate" type="date" />
+            <span class="muted">→</span>
+            <input id="endDate" type="date" />
+          </div>
+          <button onclick="runIngestion()">▶️ Start</button>
         </div>
+      </div>
     </div>
 
-    <div class="grid" style="margin-top:16px">
-      <div class="card">
-        <h2>Extract TXT (dosar)</h2>
-        <div class="row">
-          <input type="file" id="txtFile" />
-          <button onclick="extractTxt()">🔍 Extrage</button>
-        </div>
-        <div class="muted" style="margin-top:8px">Încarci TXT → primești JSON/text cu date extrase.</div>
+    <div class="card" style="margin-top:20px">
+      <h2>📤 Upload & Extract</h2>
+      <div class="row">
+        <input type="file" id="txtFile" />
+        <button onclick="extractTxt()">🔍 Extrage Metadate</button>
       </div>
-
-      <div class="card">
-        <h2>Output</h2>
-        <pre id="out">{}</pre>
-      </div>
+      <pre id="out" style="margin-top:12px">{}</pre>
     </div>
 
     <!-- Summary Stats -->
-    <div class="card" style="margin-top:16px" id="summaryCard" style="display:none">
-      <h2>📈 Statistici generale</h2>
+    <div class="card" style="margin-top:20px; display:none" id="summaryCard">
+      <h2>📈 Statistici Generale</h2>
       <div class="stats-summary">
         <div class="stat-box">
-          <div class="stat-label">Total cazuri</div>
+          <div class="stat-label">Total Cazuri</div>
           <div class="stat-value" id="statTotal">0</div>
+          <div class="stat-subtext">Hotărâri procesate</div>
         </div>
         <div class="stat-box">
           <div class="stat-label">Instanțe</div>
           <div class="stat-value" id="statCourts">0</div>
+          <div class="stat-subtext">Instanțe unice</div>
         </div>
         <div class="stat-box">
-          <div class="stat-label">Judecători identificați</div>
+          <div class="stat-label">Judecători</div>
           <div class="stat-value" id="statJudges">0</div>
+          <div class="stat-subtext">Judecători identificați</div>
         </div>
         <div class="stat-box">
-          <div class="stat-label">Articole menționate</div>
+          <div class="stat-label">Articole</div>
           <div class="stat-value" id="statArticles">0</div>
+          <div class="stat-subtext">Referințe legale</div>
         </div>
       </div>
     </div>
 
     <!-- Charts Grid -->
-    <div class="grid grid2" style="margin-top:16px" id="chartsSection" style="display:none">
+    <div class="grid grid3" style="margin-top:20px; display:none" id="chartsSection">
       <div class="card">
-        <h2>🏛️ Top 10 Instanțe</h2>
-        <div class="chart-container">
+        <h3>🏛️ Top 15 Instanțe</h3>
+        <div class="chart-container chart-small">
           <canvas id="chartByCourt"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h2>⚖️ Distribuție pe domenii</h2>
-        <div class="chart-container-small">
+        <h3>⚖️ Domenii Juridice</h3>
+        <div class="chart-container chart-small">
           <canvas id="chartByDomain"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h2>📋 Tipuri de documente</h2>
-        <div class="chart-container-small">
+        <h3>📋 Tipuri Documente</h3>
+        <div class="chart-container chart-small">
           <canvas id="chartByDocType"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h2>✅ Soluții pronunțate</h2>
-        <div class="chart-container-small">
+        <h3>✅ Soluții Pronunțate</h3>
+        <div class="chart-container chart-small">
           <canvas id="chartBySolution"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📅 Distribuție Temporală</h3>
+        <div class="chart-container chart-small">
+          <canvas id="chartByMonth"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>👨‍⚖️ Top 10 Judecători</h3>
+        <div class="chart-container chart-small">
+          <canvas id="chartByJudge"></canvas>
         </div>
       </div>
     </div>
 
     <!-- Data Table -->
-    <div class="card" style="margin-top:16px" id="tableSection" style="display:none">
-      <h2>📄 Tabel – Date extrase</h2>
-      <div style="overflow:auto; max-height:500px">
+    <div class="card" style="margin-top:20px; display:none" id="tableSection">
+      <h2>📄 Tabel Detaliat</h2>
+      <div style="overflow:auto; max-height:600px; border:1px solid #1e293b; border-radius:8px">
         <table id="dataTable">
           <thead>
             <tr>
               <th>Instanța</th>
               <th>Localitate</th>
               <th>Dosar</th>
-              <th>Tip document</th>
+              <th>Tip</th>
               <th>Domeniu</th>
               <th>Judecător</th>
               <th>Avocat</th>
               <th>Articole</th>
-              <th>Procedura</th>
               <th>Soluție</th>
-              <th>Data pronunțării</th>
+              <th>Data</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -181,61 +193,104 @@
       </div>
     </div>
 
+    <!-- Chart Builder -->
+    <div class="chart-builder" style="display:none" id="chartBuilder">
+      <h2>🎨 Constructor Grafic Personalizat</h2>
+      <p class="muted">Creează grafice personalizate din datele tale</p>
+
+      <div class="builder-controls">
+        <div class="control-group">
+          <label class="control-label">Tip Grafic</label>
+          <select id="customChartType" onchange="updateCustomChart()">
+            <option value="bar">📊 Bare</option>
+            <option value="horizontalBar">📊 Bare Orizontale</option>
+            <option value="pie">🥧 Pie Chart</option>
+            <option value="doughnut">🍩 Doughnut</option>
+            <option value="line">📈 Linie</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Grupare Date După</label>
+          <select id="customGroupBy" onchange="updateCustomChart()">
+            <option value="instanta">🏛️ Instanță</option>
+            <option value="domain">⚖️ Domeniu</option>
+            <option value="doc_type">📋 Tip Document</option>
+            <option value="solutie">✅ Soluție</option>
+            <option value="judecator">👨‍⚖️ Judecător</option>
+            <option value="localitate">📍 Localitate</option>
+            <option value="procedura">⚙️ Procedură</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Limită Rezultate</label>
+          <select id="customLimit" onchange="updateCustomChart()">
+            <option value="5">Top 5</option>
+            <option value="10" selected>Top 10</option>
+            <option value="15">Top 15</option>
+            <option value="20">Top 20</option>
+            <option value="all">Toate</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Acțiune</label>
+          <button onclick="updateCustomChart()" style="width:100%">🔄 Actualizează</button>
+        </div>
+      </div>
+
+      <div class="card" id="customChart">
+        <div class="chart-container">
+          <canvas id="customChartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <script>
     const out = (x) => document.getElementById("out").textContent = x;
+    function esc(v){ return (v ?? "").toString().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
 
-    function esc(v){
-      return (v ?? "")
-        .toString()
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;");
-    }
+    let allCases = [];
+    let charts = {};
 
-    // Chart instances
-    let chartByCourt, chartByDomain, chartByDocType, chartBySolution;
-
-    // Chart.js global config
-    Chart.defaults.color = '#98a6c7';
-    Chart.defaults.borderColor = '#23314d';
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#334155';
     Chart.defaults.font.family = 'system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    Chart.defaults.plugins.legend.labels.color = '#cbd5e1';
 
     /* =======================
-       TABEL DATE EXTRASE TXT
+       TABLE RENDERING
        ======================= */
     function renderExtractedTable(data) {
       const tbody = document.querySelector("#dataTable tbody");
       tbody.innerHTML = "";
-
       const rows = Array.isArray(data) ? data : [data];
 
       for (const d of rows) {
         const ext = d.extracted || d;
-
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td>${esc(ext.instanta || d.instanta)}</td>
           <td>${esc(ext.localitate || d.localitate)}</td>
           <td>${esc(ext.dosar_nr || d.dosar)}</td>
-          <td>${esc(ext.doc_type)}</td>
-          <td>${esc(ext.domain)}</td>
+          <td><span class="badge badge-blue">${esc(ext.doc_type || 'N/A')}</span></td>
+          <td><span class="badge badge-yellow">${esc(ext.domain || 'N/A')}</span></td>
           <td>${esc(ext.judecator ?? "—")}</td>
           <td>${esc(ext.avocat ?? "—")}</td>
-          <td>${esc((ext.articole || []).slice(0,3).join(", "))}${(ext.articole||[]).length > 3 ? '...' : ''}</td>
-          <td>${esc(ext.procedura)}</td>
-          <td><b>${esc(ext.solutie)}</b></td>
+          <td>${esc((ext.articole || []).slice(0,2).join(", "))}${(ext.articole||[]).length > 2 ? '...' : ''}</td>
+          <td><span class="badge badge-green"><b>${esc(ext.solutie || 'N/A')}</b></span></td>
           <td>${esc(ext.data_pronuntarii || d.data_pron)}</td>
         `;
         tbody.appendChild(tr);
       }
-
       document.getElementById("tableSection").style.display = "block";
     }
 
     /* =======================
-       STATISTICI
+       STATISTICS
        ======================= */
     function groupCount(items, keyFn) {
       const m = new Map();
@@ -248,8 +303,8 @@
 
     function renderStats(items){
       if (!items || items.length === 0) return;
+      allCases = items;
 
-      // Summary stats
       const uniqueCourts = new Set();
       const uniqueJudges = new Set();
       let totalArticles = 0;
@@ -268,143 +323,212 @@
 
       document.getElementById("summaryCard").style.display = "block";
       document.getElementById("chartsSection").style.display = "grid";
+      document.getElementById("chartBuilder").style.display = "block";
 
-      // Chart 1: Top courts
-      const byCourt = groupCount(items, x => {
-        const ext = x.extracted || x;
-        return ext.instanta || x.instanta;
-      });
+      renderAllCharts(items);
+      updateCustomChart();
+    }
 
-      if (chartByCourt) chartByCourt.destroy();
-      chartByCourt = new Chart(document.getElementById("chartByCourt"), {
-        type: 'bar',
-        data: {
-          labels: byCourt.slice(0,10).map(x=>x[0]),
-          datasets: [{
-            label: 'Număr hotărâri',
-            data: byCourt.slice(0,10).map(x=>x[1]),
-            backgroundColor: 'rgba(75, 130, 255, 0.8)',
-            borderColor: 'rgba(75, 130, 255, 1)',
-            borderWidth: 1
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
-          },
-          scales: {
-            x: { beginAtZero: true, ticks: { stepSize: 1 } }
-          }
-        }
-      });
+    function renderAllCharts(items) {
+      // Chart 1: Courts
+      const byCourt = groupCount(items, x => (x.extracted || x).instanta || x.instanta);
+      createChart('chartByCourt', 'bar', byCourt.slice(0,15), '#3b82f6');
 
       // Chart 2: Domains
-      const byDomain = groupCount(items, x => {
-        const ext = x.extracted || x;
-        return ext.domain || 'Nespecificat';
-      });
+      const byDomain = groupCount(items, x => (x.extracted || x).domain || 'Nespecificat');
+      createPieChart('chartByDomain', byDomain, ['#ef4444', '#3b82f6', '#f59e0b', '#10b981', '#8b5cf6']);
 
-      if (chartByDomain) chartByDomain.destroy();
-      chartByDomain = new Chart(document.getElementById("chartByDomain"), {
-        type: 'doughnut',
-        data: {
-          labels: byDomain.map(x=>x[0]),
-          datasets: [{
-            data: byDomain.map(x=>x[1]),
-            backgroundColor: [
-              'rgba(255, 99, 132, 0.8)',
-              'rgba(54, 162, 235, 0.8)',
-              'rgba(255, 206, 86, 0.8)',
-              'rgba(75, 192, 192, 0.8)',
-              'rgba(153, 102, 255, 0.8)',
-            ]
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom' }
-          }
-        }
-      });
-
-      // Chart 3: Document types
-      const byDocType = groupCount(items, x => {
-        const ext = x.extracted || x;
-        return ext.doc_type || 'Nespecificat';
-      });
-
-      if (chartByDocType) chartByDocType.destroy();
-      chartByDocType = new Chart(document.getElementById("chartByDocType"), {
-        type: 'pie',
-        data: {
-          labels: byDocType.map(x=>x[0]),
-          datasets: [{
-            data: byDocType.map(x=>x[1]),
-            backgroundColor: [
-              'rgba(255, 159, 64, 0.8)',
-              'rgba(75, 192, 192, 0.8)',
-              'rgba(153, 102, 255, 0.8)',
-              'rgba(255, 99, 132, 0.8)',
-            ]
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom' }
-          }
-        }
-      });
+      // Chart 3: Doc Types
+      const byDocType = groupCount(items, x => (x.extracted || x).doc_type || 'Nespecificat');
+      createPieChart('chartByDocType', byDocType, ['#f59e0b', '#10b981', '#8b5cf6', '#ec4899']);
 
       // Chart 4: Solutions
-      const bySolution = groupCount(items, x => {
-        const ext = x.extracted || x;
-        return ext.solutie || 'Nespecificat';
-      });
+      const bySolution = groupCount(items, x => (x.extracted || x).solutie || 'Nespecificat');
+      createPieChart('chartBySolution', bySolution, ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#3b82f6']);
 
-      if (chartBySolution) chartBySolution.destroy();
-      chartBySolution = new Chart(document.getElementById("chartBySolution"), {
+      // Chart 5: Monthly distribution
+      const byMonth = groupCount(items, x => {
+        const date = (x.extracted || x).data_pronuntarii || x.data_pron;
+        if (!date) return 'N/A';
+        return date.substring(0, 7);
+      });
+      createLineChart('chartByMonth', byMonth.slice(0,12));
+
+      // Chart 6: Judges
+      const byJudge = groupCount(items, x => (x.extracted || x).judecator || 'Nespecificat')
+        .filter(x => x[0] !== 'Nespecificat' && x[0] !== 'N/A');
+      createChart('chartByJudge', 'bar', byJudge.slice(0,10), '#8b5cf6');
+    }
+
+    function createChart(id, type, data, color) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
+        type: type,
+        data: {
+          labels: data.map(x=>x[0]),
+          datasets: [{
+            label: 'Număr',
+            data: data.map(x=>x[1]),
+            backgroundColor: color,
+            borderWidth: 0
+          }]
+        },
+        options: {
+          indexAxis: type === 'bar' ? 'y' : 'x',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { beginAtZero: true, grid: { color: '#1e293b' } },
+            y: { grid: { color: '#1e293b' } }
+          }
+        }
+      });
+    }
+
+    function createPieChart(id, data, colors) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
         type: 'doughnut',
         data: {
-          labels: bySolution.map(x=>x[0]),
+          labels: data.map(x=>x[0]),
           datasets: [{
-            data: bySolution.map(x=>x[1]),
-            backgroundColor: [
-              'rgba(75, 192, 192, 0.8)',
-              'rgba(255, 99, 132, 0.8)',
-              'rgba(255, 206, 86, 0.8)',
-              'rgba(153, 102, 255, 0.8)',
-              'rgba(54, 162, 235, 0.8)',
-            ]
+            data: data.map(x=>x[1]),
+            backgroundColor: colors
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom' }
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+    }
+
+    function createLineChart(id, data) {
+      if (charts[id]) charts[id].destroy();
+      charts[id] = new Chart(document.getElementById(id), {
+        type: 'line',
+        data: {
+          labels: data.map(x=>x[0]),
+          datasets: [{
+            label: 'Cazuri',
+            data: data.map(x=>x[1]),
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: '#1e293b' } },
+            x: { grid: { color: '#1e293b' } }
           }
         }
       });
     }
 
     /* =======================
-       INGESTION JOB
+       CUSTOM CHART BUILDER
+       ======================= */
+    function updateCustomChart() {
+      if (!allCases || allCases.length === 0) return;
+
+      const chartType = document.getElementById('customChartType').value;
+      const groupBy = document.getElementById('customGroupBy').value;
+      const limit = document.getElementById('customLimit').value;
+
+      const keyFn = (x) => {
+        const ext = x.extracted || x;
+        return ext[groupBy] || x[groupBy] || 'Nespecificat';
+      };
+
+      let data = groupCount(allCases, keyFn);
+      if (limit !== 'all') data = data.slice(0, parseInt(limit));
+
+      if (charts.custom) charts.custom.destroy();
+
+      const colors = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6',
+                      '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1'];
+
+      if (chartType === 'pie' || chartType === 'doughnut') {
+        charts.custom = new Chart(document.getElementById('customChartCanvas'), {
+          type: chartType,
+          data: {
+            labels: data.map(x=>x[0]),
+            datasets: [{
+              data: data.map(x=>x[1]),
+              backgroundColor: colors
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'right' } }
+          }
+        });
+      } else if (chartType === 'line') {
+        charts.custom = new Chart(document.getElementById('customChartCanvas'), {
+          type: 'line',
+          data: {
+            labels: data.map(x=>x[0]),
+            datasets: [{
+              label: 'Număr cazuri',
+              data: data.map(x=>x[1]),
+              borderColor: '#3b82f6',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.3,
+              fill: true
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: { beginAtZero: true, grid: { color: '#1e293b' } },
+              x: { grid: { color: '#1e293b' } }
+            }
+          }
+        });
+      } else {
+        const isHorizontal = chartType === 'horizontalBar';
+        charts.custom = new Chart(document.getElementById('customChartCanvas'), {
+          type: 'bar',
+          data: {
+            labels: data.map(x=>x[0]),
+            datasets: [{
+              label: 'Număr cazuri',
+              data: data.map(x=>x[1]),
+              backgroundColor: '#3b82f6'
+            }]
+          },
+          options: {
+            indexAxis: isHorizontal ? 'y' : 'x',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { beginAtZero: true, grid: { color: '#1e293b' } },
+              y: { grid: { color: '#1e293b' } }
+            }
+          }
+        });
+      }
+    }
+
+    /* =======================
+       API CALLS
        ======================= */
     async function pollJob(jobId){
       for(let i=0;i<180;i++){
         const r = await fetch(`/api/ingestion/jobs/${jobId}`);
         const j = await r.json();
         out(JSON.stringify(j,null,2));
-
         if(j.status==="done"){
-          out("Scraping done. Waiting for processing...");
+          out("✅ Scraping complet. Se procesează datele...");
           await new Promise(r=>setTimeout(r,3000));
           await loadEnrichedCases();
           return;
@@ -412,80 +536,66 @@
         if(j.status==="error") return;
         await new Promise(r=>setTimeout(r,1000));
       }
-      out("Timeout job.");
+      out("⏱️ Timeout.");
     }
 
     async function loadEnrichedCases(){
       try {
         const r = await fetch("/api/cases?limit=500");
         const data = await r.json();
-
-        out(`Loaded ${data.total} enriched cases`);
-
+        out(`✅ Încărcat ${data.total} cazuri procesate`);
         if(data.cases && data.cases.length > 0){
           renderStats(data.cases);
           renderExtractedTable(data.cases);
         }
       } catch(e) {
-        out("Error loading enriched cases: " + e.message);
+        out("❌ Eroare: " + e.message);
       }
     }
 
-     async function runIngestion(){
+    async function runIngestion(){
       try {
         const dr = getDateRangeString();
-
         const r = await fetch(`/api/ingestion/run?date_range=${encodeURIComponent(dr)}`, {
-          method:"POST",
-          cache:"no-store"
+          method:"POST", cache:"no-store"
         });
-
         const txt = await r.text();
         out(txt);
-
         try {
           const j = JSON.parse(txt);
           if (j.job_id) await pollJob(j.job_id);
         } catch (_) {}
-
       } catch (e) {
-        out(String(e.message || e));
+        out("❌ " + String(e.message || e));
       }
     }
 
-    /* =======================
-       EXTRACT TXT
-       ======================= */
     async function extractTxt(){
       const f = document.getElementById("txtFile").files[0];
-      if(!f){ alert("Alege fișier TXT"); return; }
-
+      if(!f){ alert("Selectează un fișier TXT"); return; }
       const fd = new FormData();
       fd.append("file", f);
-
       const r = await fetch("/api/extract/txt", {method:"POST", body:fd});
       const data = await r.json();
-
       out(JSON.stringify(data,null,2));
       renderExtractedTable(data);
       renderStats([data]);
     }
 
-    /* =======================
-       HEALTH
-       ======================= */
     async function health(){
       const r = await fetch("/api/health");
       const j = await r.json();
       document.getElementById("svcPills").innerHTML =
         Object.entries(j).map(([k,v]) =>
-          `<span class="pill ${v.ok?"ok":"bad"}">${k}: ${v.ok?"OK":"DOWN"}</span>`
+          `<span class="pill ${v.ok?"ok":"bad"}">${k}: ${v.ok?"✅":"❌"}</span>`
         ).join(" ");
       out(JSON.stringify(j,null,2));
     }
 
-
-      function toggleMode() {
+    /* =======================
+       UTILITY
+       ======================= */
+    function toggleMode() {
       const isRange = document.getElementById("modeToggle").checked;
       document.getElementById("singleWrap").style.display = isRange ? "none" : "flex";
       document.getElementById("rangeWrap").style.display  = isRange ? "flex" : "none";
@@ -499,27 +609,24 @@
 
     function getDateRangeString() {
       const isRange = document.getElementById("modeToggle").checked;
-
       if (!isRange) {
         const d = document.getElementById("singleDate").value;
         if (!d) throw new Error("Selectează o dată.");
         return `${d} TO ${d}`;
       }
-
       const s = document.getElementById("startDate").value;
       const e = document.getElementById("endDate").value;
       if (!s || !e) throw new Error("Selectează data de început și sfârșit.");
-      if (s > e) throw new Error("Interval invalid: start > end.");
+      if (s > e) throw new Error("Interval invalid.");
       return `${s} TO ${e}`;
     }
 
-    // setează default la încărcare
     window.addEventListener("DOMContentLoaded", () => {
       const t = todayISO();
       document.getElementById("singleDate").value = t;
       document.getElementById("startDate").value = t;
       document.getElementById("endDate").value = t;
     });
-    </script>
+  </script>
 </body>
 </html>
