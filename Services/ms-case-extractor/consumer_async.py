@@ -9,7 +9,7 @@ import os
 import asyncio
 from confluent_kafka import Consumer
 
-from app.extractor import extract_case
+from app.extractor import extract_case, extract_from_parsed_data
 
 
 KAFKA = os.getenv("KAFKA_BOOTSTRAP", "kafka:9092")
@@ -56,7 +56,8 @@ async def process_event(event: dict):
             return
 
         try:
-            # Citire async cu aiofiles
+            # Citire text din PDF (pentru articole de lege)
+            text = None
             try:
                 import aiofiles
                 async with aiofiles.open(txt_path, "r", encoding="utf-8") as f:
@@ -66,8 +67,22 @@ async def process_event(event: dict):
                 with open(txt_path, "r", encoding="utf-8") as f:
                     text = f.read()
 
-            # Extracție metadate (sync, dar rapid - doar regex)
-            result = extract_case(text, filename=txt_path)
+            # Folosește datele parsate din tabel (instanta, dosar, judecator, etc.)
+            # În loc să extragă din PDF cu regex (care e imprecis)
+            parsed_data = {
+                "instanta": event.get("instanta"),
+                "dosar": event.get("dosar"),
+                "denumire": event.get("denumire"),
+                "data_pron": event.get("data_pron"),
+                "data_inreg": event.get("data_inreg"),
+                "data_publ": event.get("data_publ"),
+                "tip_dosar": event.get("tip_dosar"),
+                "tematica": event.get("tematica"),
+                "judecator": event.get("judecator")
+            }
+
+            # Extracție folosind datele parsate + text pentru articole
+            result = extract_from_parsed_data(parsed_data, text=text, filename=txt_path)
             extracted = result.model_dump()
 
             # Combină cu informații din event anterior
@@ -80,7 +95,7 @@ async def process_event(event: dict):
             send(producer, OUT_TOPIC, enriched)
             producer.flush()
 
-            print(f"[OK] Enriched: {event.get('dosar', '?')}")
+            print(f"[OK] Enriched: {event.get('dosar', '?')} (instanta: {event.get('instanta', '?')}, judecator: {event.get('judecator', '?')})")
 
         except Exception as e:
             print(f"[ERROR] Extraction failed for {txt_path}: {e}")

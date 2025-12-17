@@ -1,6 +1,6 @@
 import re
 from datetime import datetime
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict, Any
 from .models import CaseExtractResult
 
 RO_MONTHS = {
@@ -193,5 +193,132 @@ def extract_case(text: str, filename: Optional[str] = None) -> CaseExtractResult
         sol = "anulare act administrativ"
     res.solutie = sol
     res.confidence["solutie"] = 0.55 if sol else 0.2
+
+    return res
+
+
+def extract_from_parsed_data(parsed_data: Dict[str, Any], text: Optional[str] = None, filename: Optional[str] = None) -> CaseExtractResult:
+    """
+    Extrage metadate folosind datele parsate din tabelul HTML de pe portal.just.ro.
+    Aceste date sunt mult mai precise decât extracția din PDF cu regex.
+
+    Datele parsate conțin:
+    - instanta: Instanța judecătorească
+    - dosar: Numărul dosarului
+    - denumire: Denumirea dosarului
+    - data_pron: Data pronunțării
+    - data_inreg: Data înregistrării
+    - data_publ: Data publicării
+    - tip_dosar: Tipul dosarului (Civil, Penal, etc.)
+    - tematica: Tematica dosarului
+    - judecator: Judecător
+    """
+    res = CaseExtractResult(source_filename=filename)
+
+    # Instanța - confidence foarte ridicat pentru că vine din tabel
+    if parsed_data.get("instanta"):
+        res.instanta = parsed_data["instanta"]
+        res.confidence["instanta"] = 1.0
+
+    # Număr dosar
+    if parsed_data.get("dosar"):
+        res.dosar_nr = parsed_data["dosar"]
+        res.confidence["dosar_nr"] = 1.0
+
+    # Data pronunțării - vine în format DD.MM.YYYY sau similar
+    if parsed_data.get("data_pron"):
+        date_str = parsed_data["data_pron"]
+        # Încearcă să parseze data în format ISO
+        try:
+            # Format DD.MM.YYYY sau YYYY-MM-DD
+            if "." in date_str:
+                d, m, y = date_str.split(".")
+                res.data_pronuntarii = f"{y}-{m.zfill(2)}-{d.zfill(2)}"
+            elif "-" in date_str and len(date_str) == 10:
+                res.data_pronuntarii = date_str
+            else:
+                res.data_pronuntarii = date_str
+            res.confidence["data_pronuntarii"] = 1.0
+        except:
+            res.data_pronuntarii = date_str
+            res.confidence["data_pronuntarii"] = 0.8
+
+    # Judecător
+    if parsed_data.get("judecator"):
+        res.judecator = parsed_data["judecator"]
+        res.confidence["judecator"] = 1.0
+
+    # Tip dosar (Civil, Penal, etc.) - îl mapăm la domeniu
+    if parsed_data.get("tip_dosar"):
+        tip = parsed_data["tip_dosar"].lower()
+        if "penal" in tip:
+            res.domain = "penal"
+        elif "civil" in tip:
+            res.domain = "civil"
+        elif "administrativ" in tip or "contencios" in tip:
+            res.domain = "administrativ"
+        else:
+            res.domain = tip
+        res.confidence["domain"] = 1.0
+
+        # Setează și doc_type bazat pe tip
+        res.doc_type = parsed_data["tip_dosar"]
+        res.confidence["doc_type"] = 1.0
+
+    # Tematica - o folosim ca domeniu secundar sau descriere
+    if parsed_data.get("tematica"):
+        # Dacă nu avem domain setat, încercăm din tematica
+        if not res.domain:
+            tematica_lower = parsed_data["tematica"].lower()
+            if "penal" in tematica_lower:
+                res.domain = "penal"
+            elif "civil" in tematica_lower:
+                res.domain = "civil"
+            elif "administrativ" in tematica_lower:
+                res.domain = "administrativ"
+
+        # Încercăm să detectăm soluția din tematică
+        tematica_lower = parsed_data["tematica"].lower()
+        if "condamn" in tematica_lower or "încasare" in tematica_lower:
+            res.solutie = "condamnare"
+            res.confidence["solutie"] = 0.8
+        elif "achit" in tematica_lower:
+            res.solutie = "achitare"
+            res.confidence["solutie"] = 0.9
+        elif "anulare" in tematica_lower:
+            res.solutie = "anulare act administrativ"
+            res.confidence["solutie"] = 0.85
+
+    # Dacă avem text din PDF, extragem articolele de lege (asta nu vine din tabel)
+    if text:
+        t = _norm_spaces(text)
+
+        # Articole de lege
+        arts = re.findall(r"\bart\.\s*\d+(?:\s*[\^]?\s*\d+)?(?:\s*alin\.\s*\([0-9]+\))?(?:\s*lit\.\s*[a-z]\))?\s*(?:Cod penal|CP|Cod administrativ|CPC|CPP)?\b",
+                          t, flags=re.IGNORECASE)
+        seen = set()
+        cleaned = []
+        for a in arts:
+            a2 = re.sub(r"\s{2,}", " ", a.strip())
+            if a2.lower() not in seen:
+                seen.add(a2.lower())
+                cleaned.append(a2)
+        res.articole = cleaned[:40]
+        res.confidence["articole"] = 0.8 if res.articole else 0.0
+
+        # Dacă nu am găsit soluția din tematică, încercăm din PDF
+        if not res.solutie:
+            if re.search(r"\bachit", t, flags=re.IGNORECASE):
+                res.solutie = "achitare"
+                res.confidence["solutie"] = 0.7
+            elif re.search(r"\bcondamn", t, flags=re.IGNORECASE):
+                res.solutie = "condamnare"
+                res.confidence["solutie"] = 0.6
+            elif re.search(r"\bprescrip", t, flags=re.IGNORECASE):
+                res.solutie = "prescripție"
+                res.confidence["solutie"] = 0.65
+            elif re.search(r"\banulare(a)?\s+actului\s+administrativ\b", t, flags=re.IGNORECASE):
+                res.solutie = "anulare act administrativ"
+                res.confidence["solutie"] = 0.7
 
     return res
