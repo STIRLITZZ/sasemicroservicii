@@ -55,55 +55,14 @@
     <h1>Dashboard Date Juridice</h1>
     <div class="muted">Platforma de analiză și vizualizare hotărâri judecătorești</div>
 
-    <div class="grid grid2" style="margin-top:20px">
-      <div class="card">
-        <h2>Control Panel</h2>
-        <div class="row">
-          <button onclick="health()">Check Status</button>
-          <span id="svcPills"></span>
-        </div>
-        <div class="row" style="margin-top:12px">
-          <button onclick="loadEnrichedCases()">Încarcă Date</button>
-          <span class="muted">Afișează toate cazurile procesate</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <h2>Scraping Date Noi</h2>
-        <div class="row" style="gap:12px; margin-bottom:10px">
-          <div class="pill">
-            <input id="modeToggle" type="checkbox" onchange="toggleMode()" />
-            <span>Interval perioadă</span>
-          </div>
-          <div class="pill" style="background:#14532d; border-color:#10b981">
-            <input id="standaloneMode" type="checkbox" />
-            <span>Mod Standalone (fără Docker/Kafka)</span>
-          </div>
-        </div>
-        <div class="row" style="gap:12px">
-          <div id="singleWrap" class="row">
-            <input id="singleDate" type="date" />
-          </div>
-          <div id="rangeWrap" class="row" style="display:none">
-            <input id="startDate" type="date" />
-            <span class="muted">→</span>
-            <input id="endDate" type="date" />
-          </div>
-          <button onclick="runIngestion()">Start</button>
-        </div>
-        <div class="muted" style="margin-top:8px">
-          Modul standalone procesează tot în backend fără microservicii
-        </div>
-      </div>
-    </div>
-
     <div class="card" style="margin-top:20px">
-      <h2>Upload & Extract</h2>
-      <div class="row">
-        <input type="file" id="txtFile" />
-        <button onclick="extractTxt()">Extrage Metadate</button>
+      <h2>Procesare Hotărâri</h2>
+      <div class="row" style="gap:12px; align-items:center">
+        <input id="singleDate" type="date" style="font-size:16px; padding:12px" />
+        <button onclick="runIngestion()" style="font-size:16px; padding:12px 24px">🚀 Procesează</button>
+        <button onclick="loadEnrichedCases()" style="background:#10b981; border-color:#10b981; font-size:16px; padding:12px 24px">📊 Arată Grafice</button>
       </div>
-      <pre id="out" style="margin-top:12px">{}</pre>
+      <pre id="out" style="margin-top:12px; font-size:13px; min-height:60px">{}</pre>
     </div>
 
     <!-- Summary Stats -->
@@ -134,7 +93,7 @@
     </div>
 
     <!-- DWH Insights -->
-    <div class="card" style="margin-top:20px; display:none" id="dwhInsights">
+    <div class="card" style="margin-top:20px; display:none" id="dwhInsights" hidden>
       <h2>Insights DWH (Data Warehouse)</h2>
       <p class="muted">Analize automate generate din warehouse</p>
       <div id="insightsList" style="margin-top:12px"></div>
@@ -144,7 +103,7 @@
     </div>
 
     <!-- Charts Grid -->
-    <div class="grid grid3" style="margin-top:20px; display:none" id="chartsSection">
+    <div class="grid grid3" style="margin-top:20px" id="chartsSection">
       <div class="card">
         <h3>Top 15 Instanțe</h3>
         <div class="chart-container chart-small">
@@ -189,7 +148,7 @@
     </div>
 
     <!-- Data Table -->
-    <div class="card" style="margin-top:20px; display:none" id="tableSection">
+    <div class="card" style="margin-top:20px" id="tableSection">
       <h2>Tabel Detaliat</h2>
       <div style="overflow:auto; max-height:600px; border:1px solid #1e293b; border-radius:8px">
         <table id="dataTable">
@@ -583,30 +542,8 @@
 
     async function loadEnrichedCases(){
       try {
-        // Încearcă mai întâi standalone, apoi normal
-        const isStandalone = document.getElementById("standaloneMode")?.checked || false;
-
-        let url = isStandalone ? "/api/standalone/cases?limit=10000" : "/api/cases?limit=10000";
-
-        const isRangeMode = document.getElementById("modeToggle").checked;
-        let startDate, endDate;
-
-        if (isRangeMode) {
-          // Mod interval
-          startDate = document.getElementById("startDate").value;
-          endDate = document.getElementById("endDate").value;
-        } else {
-          // Mod dată unică - folosește aceeași dată pentru start și end
-          const singleDate = document.getElementById("singleDate").value;
-          if (singleDate) {
-            startDate = singleDate;
-            endDate = singleDate;
-          }
-        }
-
-        // Adaugă parametrii de dată la URL dacă există
-        if (startDate) url += `&start_date=${startDate}`;
-        if (endDate) url += `&end_date=${endDate}`;
+        // ÎNTOTDEAUNA standalone
+        let url = "/api/standalone/cases?limit=10000";
 
         const r = await fetch(url);
 
@@ -624,36 +561,15 @@
         }
 
         const total = data.total || 0;
-        const totalUnfiltered = data.total_unfiltered || total;
         const cases = data.cases || [];
-        const mode = data.mode || "normal";
 
-        // Mesaj care arată filtrarea
-        let msg = `Încărcat ${cases.length} / ${total} cazuri (mod: ${mode})`;
-        if (startDate || endDate) {
-          msg += ` (filtrate din ${totalUnfiltered} total)`;
-          if (startDate && endDate && startDate === endDate) {
-            msg += ` - doar data ${startDate}`;
-          } else if (startDate && endDate) {
-            msg += ` - interval ${startDate} → ${endDate}`;
-          } else if (startDate) {
-            msg += ` - după ${startDate}`;
-          } else {
-            msg += ` - înainte de ${endDate}`;
-          }
-        }
-        out(msg);
+        out(`📊 Încărcat ${total} cazuri procesate`);
 
         if(cases.length > 0){
           renderStats(cases);
           renderExtractedTable(cases);
         } else {
-          out("INFO: Nu există cazuri procesate încă. Rulează scraping-ul mai întâi.");
-        }
-
-        // Încarcă și insights DWH (doar pentru mod normal)
-        if (!isStandalone) {
-          await loadDWHInsights();
+          out("ℹ️ Nu există cazuri procesate încă. Apasă '🚀 Procesează' pentru a începe.");
         }
       } catch(e) {
         out("EROARE: " + e.message);
@@ -662,8 +578,6 @@
     }
 
     async function loadStandaloneCases() {
-      // Forțează încărcarea din standalone
-      document.getElementById("standaloneMode").checked = true;
       await loadEnrichedCases();
     }
 
@@ -698,33 +612,26 @@
 
     async function runIngestion(){
       try {
-        const dr = getDateRangeString();
-        const isStandalone = document.getElementById("standaloneMode").checked;
-
-        if (isStandalone) {
-          // Mod standalone - procesare directă în backend
-          out("Start procesare standalone (fără Docker/Kafka)...");
-          const r = await fetch(`/api/standalone/run?date_range=${encodeURIComponent(dr)}&max_pages=50`, {
-            method:"POST", cache:"no-store"
-          });
-          const txt = await r.text();
-          out(txt);
-          try {
-            const j = JSON.parse(txt);
-            if (j.job_id) await pollStandaloneJob(j.job_id);
-          } catch (_) {}
-        } else {
-          // Mod normal - cu microservicii
-          const r = await fetch(`/api/ingestion/run?date_range=${encodeURIComponent(dr)}`, {
-            method:"POST", cache:"no-store"
-          });
-          const txt = await r.text();
-          out(txt);
-          try {
-            const j = JSON.parse(txt);
-            if (j.job_id) await pollJob(j.job_id);
-          } catch (_) {}
+        // Obtine data selectata
+        const selectedDate = document.getElementById("singleDate").value;
+        if (!selectedDate) {
+          out("EROARE: Selectează o dată.");
+          return;
         }
+
+        const dr = `${selectedDate} TO ${selectedDate}`;
+
+        // Mod standalone - procesare directă în backend (ÎNTOTDEAUNA)
+        out(`🚀 Start procesare pentru ${selectedDate}...`);
+        const r = await fetch(`/api/standalone/run?date_range=${encodeURIComponent(dr)}&max_pages=50`, {
+          method:"POST", cache:"no-store"
+        });
+        const txt = await r.text();
+        out(txt);
+        try {
+          const j = JSON.parse(txt);
+          if (j.job_id) await pollStandaloneJob(j.job_id);
+        } catch (_) {}
       } catch (e) {
         out("EROARE: " + String(e.message || e));
       }
@@ -782,37 +689,21 @@
     /* =======================
        UTILITY
        ======================= */
-    function toggleMode() {
-      const isRange = document.getElementById("modeToggle").checked;
-      document.getElementById("singleWrap").style.display = isRange ? "none" : "flex";
-      document.getElementById("rangeWrap").style.display  = isRange ? "flex" : "none";
-    }
-
     function pad2(n){ return String(n).padStart(2,"0"); }
     function todayISO(){
       const d = new Date();
       return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
     }
 
-    function getDateRangeString() {
-      const isRange = document.getElementById("modeToggle").checked;
-      if (!isRange) {
-        const d = document.getElementById("singleDate").value;
-        if (!d) throw new Error("Selectează o dată.");
-        return `${d} TO ${d}`;
-      }
-      const s = document.getElementById("startDate").value;
-      const e = document.getElementById("endDate").value;
-      if (!s || !e) throw new Error("Selectează data de început și sfârșit.");
-      if (s > e) throw new Error("Interval invalid.");
-      return `${s} TO ${e}`;
-    }
-
     window.addEventListener("DOMContentLoaded", () => {
+      // Setează data de azi
       const t = todayISO();
       document.getElementById("singleDate").value = t;
-      document.getElementById("startDate").value = t;
-      document.getElementById("endDate").value = t;
+
+      // Încarcă automat datele dacă există
+      setTimeout(() => {
+        loadEnrichedCases();
+      }, 500);
     });
   </script>
 </body>
