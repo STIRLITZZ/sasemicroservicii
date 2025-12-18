@@ -70,11 +70,17 @@
 
       <div class="card">
         <h2>Scraping Date Noi</h2>
-        <div class="row" style="gap:12px">
+        <div class="row" style="gap:12px; margin-bottom:10px">
           <div class="pill">
             <input id="modeToggle" type="checkbox" onchange="toggleMode()" />
             <span>Interval perioadă</span>
           </div>
+          <div class="pill" style="background:#14532d; border-color:#10b981">
+            <input id="standaloneMode" type="checkbox" />
+            <span>Mod Standalone (fără Docker/Kafka)</span>
+          </div>
+        </div>
+        <div class="row" style="gap:12px">
           <div id="singleWrap" class="row">
             <input id="singleDate" type="date" />
           </div>
@@ -84,6 +90,9 @@
             <input id="endDate" type="date" />
           </div>
           <button onclick="runIngestion()">Start</button>
+        </div>
+        <div class="muted" style="margin-top:8px">
+          Modul standalone procesează tot în backend fără microservicii
         </div>
       </div>
     </div>
@@ -574,8 +583,10 @@
 
     async function loadEnrichedCases(){
       try {
-        // Construiește URL-ul cu filtrare pe date dacă sunt selectate
-        let url = "/api/cases?limit=10000";
+        // Încearcă mai întâi standalone, apoi normal
+        const isStandalone = document.getElementById("standaloneMode")?.checked || false;
+
+        let url = isStandalone ? "/api/standalone/cases?limit=10000" : "/api/cases?limit=10000";
 
         const isRangeMode = document.getElementById("modeToggle").checked;
         let startDate, endDate;
@@ -615,9 +626,10 @@
         const total = data.total || 0;
         const totalUnfiltered = data.total_unfiltered || total;
         const cases = data.cases || [];
+        const mode = data.mode || "normal";
 
         // Mesaj care arată filtrarea
-        let msg = `Încărcat ${cases.length} / ${total} cazuri`;
+        let msg = `Încărcat ${cases.length} / ${total} cazuri (mod: ${mode})`;
         if (startDate || endDate) {
           msg += ` (filtrate din ${totalUnfiltered} total)`;
           if (startDate && endDate && startDate === endDate) {
@@ -639,12 +651,20 @@
           out("INFO: Nu există cazuri procesate încă. Rulează scraping-ul mai întâi.");
         }
 
-        // Încarcă și insights DWH
-        await loadDWHInsights();
+        // Încarcă și insights DWH (doar pentru mod normal)
+        if (!isStandalone) {
+          await loadDWHInsights();
+        }
       } catch(e) {
         out("EROARE: " + e.message);
         console.error("Load enriched cases error:", e);
       }
+    }
+
+    async function loadStandaloneCases() {
+      // Forțează încărcarea din standalone
+      document.getElementById("standaloneMode").checked = true;
+      await loadEnrichedCases();
     }
 
     async function loadDWHInsights(){
@@ -679,18 +699,62 @@
     async function runIngestion(){
       try {
         const dr = getDateRangeString();
-        const r = await fetch(`/api/ingestion/run?date_range=${encodeURIComponent(dr)}`, {
-          method:"POST", cache:"no-store"
-        });
-        const txt = await r.text();
-        out(txt);
-        try {
-          const j = JSON.parse(txt);
-          if (j.job_id) await pollJob(j.job_id);
-        } catch (_) {}
+        const isStandalone = document.getElementById("standaloneMode").checked;
+
+        if (isStandalone) {
+          // Mod standalone - procesare directă în backend
+          out("Start procesare standalone (fără Docker/Kafka)...");
+          const r = await fetch(`/api/standalone/run?date_range=${encodeURIComponent(dr)}&max_pages=50`, {
+            method:"POST", cache:"no-store"
+          });
+          const txt = await r.text();
+          out(txt);
+          try {
+            const j = JSON.parse(txt);
+            if (j.job_id) await pollStandaloneJob(j.job_id);
+          } catch (_) {}
+        } else {
+          // Mod normal - cu microservicii
+          const r = await fetch(`/api/ingestion/run?date_range=${encodeURIComponent(dr)}`, {
+            method:"POST", cache:"no-store"
+          });
+          const txt = await r.text();
+          out(txt);
+          try {
+            const j = JSON.parse(txt);
+            if (j.job_id) await pollJob(j.job_id);
+          } catch (_) {}
+        }
       } catch (e) {
         out("EROARE: " + String(e.message || e));
       }
+    }
+
+    async function pollStandaloneJob(jobId) {
+      out(`Polling job standalone: ${jobId}...`);
+      for (let i = 0; i < 120; i++) {
+        const r = await fetch(`/api/standalone/jobs/${jobId}`);
+        const j = await r.json();
+
+        if (j.status === "completed") {
+          out(`Procesare completă! ${j.result?.total || 0} cazuri procesate.`);
+          out("Încărcare rezultate...");
+          await loadStandaloneCases();
+          return;
+        }
+        if (j.status === "error") {
+          out(`EROARE: ${j.error}`);
+          return;
+        }
+
+        // Arată progres
+        if (j.progress) {
+          out(`Status: ${j.progress}`);
+        }
+
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      out("Timeout.");
     }
 
     async function extractTxt(){

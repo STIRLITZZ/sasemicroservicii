@@ -3,6 +3,7 @@ import multer from "multer";
 import fetch from "node-fetch";
 import fs from "fs/promises";
 import path from "path";
+import { spawn } from "child_process";
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -13,6 +14,10 @@ const DWH_URL = process.env.DWH_URL;
 
 const TXT_DIR = process.env.TXT_DIR || "/data/txt";
 const ENRICHED_FILE = process.env.ENRICHED_FILE || "/data/enriched/cases.json";
+const STANDALONE_FILE = process.env.STANDALONE_FILE || "/data/standalone/cases.json";
+
+// In-memory job storage pentru standalone processing
+const standaloneJobs = new Map();
 
 app.get("/api/health", async (req, res) => {
   const targets = [
@@ -149,6 +154,144 @@ app.get("/api/dwh/summary", async (req, res) => {
     res.json(data);
   } catch (e) {
     res.status(500).json({ error: "DWH summary error", details: String(e) });
+  }
+});
+
+// ============= STANDALONE PROCESSING =============
+// Procesare completă fără Kafka/Docker - tot în backend
+
+app.post("/api/standalone/run", async (req, res) => {
+  const dateRange = req.query.date_range;
+  if (!dateRange) {
+    return res.status(400).json({ error: "date_range required" });
+  }
+
+  const maxPages = parseInt(req.query.max_pages) || 50;
+  const jobId = `standalone-${Date.now()}`;
+
+  // Inițializează job
+  standaloneJobs.set(jobId, {
+    status: "running",
+    date_range: dateRange,
+    started_at: new Date().toISOString(),
+    progress: "Starting...",
+    result: null,
+    error: null
+  });
+
+  // Rulează procesarea în background
+  const pythonScript = path.join(path.dirname(new URL(import.meta.url).pathname), "..", "standalone_processor.py");
+  const outputFile = STANDALONE_FILE;
+
+  const proc = spawn("python3", [pythonScript, dateRange, outputFile, maxPages.toString()]);
+
+  let stdout = "";
+  let stderr = "";
+
+  proc.stdout.on("data", (data) => {
+    stdout += data.toString();
+    const lastLine = stdout.split("\n").filter(l => l.trim()).pop();
+    if (lastLine) {
+      standaloneJobs.get(jobId).progress = lastLine;
+    }
+  });
+
+  proc.stderr.on("data", (data) => {
+    stderr += data.toString();
+  });
+
+  proc.on("close", async (code) => {
+    const job = standaloneJobs.get(jobId);
+
+    if (code === 0) {
+      // Success - citește rezultatele
+      try {
+        const data = await fs.readFile(outputFile, "utf-8");
+        const cases = JSON.parse(data);
+
+        job.status = "completed";
+        job.result = {
+          total: cases.length,
+          cases: cases,
+          output_file: outputFile
+        };
+        job.completed_at = new Date().toISOString();
+      } catch (e) {
+        job.status = "error";
+        job.error = `Eroare citire rezultate: ${e.message}`;
+      }
+    } else {
+      job.status = "error";
+      job.error = stderr || "Procesare eșuată";
+    }
+  });
+
+  res.json({
+    job_id: jobId,
+    status: "running",
+    message: "Procesare pornită în background"
+  });
+});
+
+// Status job standalone
+app.get("/api/standalone/jobs/:job_id", async (req, res) => {
+  const jobId = req.params.job_id;
+  const job = standaloneJobs.get(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: "Job not found" });
+  }
+
+  res.json(job);
+});
+
+// Lista toate cazurile standalone (cu filtrare)
+app.get("/api/standalone/cases", async (req, res) => {
+  try {
+    const data = await fs.readFile(STANDALONE_FILE, "utf-8");
+    const cases = JSON.parse(data);
+
+    // Filtrare pe interval de date (dacă e specificat)
+    let filtered = cases;
+    const startDate = req.query.start_date;
+    const endDate = req.query.end_date;
+
+    if (startDate || endDate) {
+      filtered = cases.filter(c => {
+        const caseDate = c.data_inreg || c.data_publ;
+        if (!caseDate) return false;
+
+        const caseDateStr = caseDate.split(' ')[0];
+
+        if (startDate && caseDateStr < startDate) return false;
+        if (endDate && caseDateStr > endDate) return false;
+
+        return true;
+      });
+    }
+
+    // Paginare
+    const limit = parseInt(req.query.limit) || 1000;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const paginated = filtered.slice(offset, offset + limit);
+
+    res.json({
+      total: filtered.length,
+      total_unfiltered: cases.length,
+      limit,
+      offset,
+      start_date: startDate || null,
+      end_date: endDate || null,
+      cases: paginated,
+      mode: "standalone"
+    });
+  } catch (e) {
+    if (e.code === "ENOENT") {
+      res.json({ total: 0, cases: [], mode: "standalone" });
+    } else {
+      res.status(500).json({ error: "Could not read standalone cases", details: String(e) });
+    }
   }
 });
 
