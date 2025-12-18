@@ -1,0 +1,6 @@
+# Requirements pentru standalone_processor.py
+# Instalare: pip install -r standalone_requirements.txt
+
+httpx>=0.25.0
+beautifulsoup4>=4.12.0
+pypdf>=3.17.0
