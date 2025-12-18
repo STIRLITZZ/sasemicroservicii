@@ -328,6 +328,29 @@ def extract_from_parsed_data(parsed_data: Dict[str, Any], text: Optional[str] = 
             if res.avocat:
                 res.confidence["avocat"] = 0.75
 
+        # Grefier (nu vine din tabel, doar din PDF)
+        if not res.grefier:
+            res.grefier = _find_first(
+                [r"\bGrefier(?:i)?\s+([A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+(?:\s+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+)*)\b"],
+                t,
+                flags=re.IGNORECASE
+            )
+            if res.grefier:
+                res.confidence["grefier"] = 0.75
+
+        # Procuror (nu vine din tabel, doar din PDF)
+        if not res.procuror:
+            res.procuror = _find_first(
+                [
+                    r"\bprocurorului\s+([A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+(?:\s+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+)*)\b",
+                    r"\bAcuzatorilor\s+de\s+stat\s+([A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+(?:\s+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+)*)\b",
+                ],
+                t,
+                flags=re.IGNORECASE
+            )
+            if res.procuror:
+                res.confidence["procuror"] = 0.75
+
         # Articole de lege
         arts = re.findall(r"\bart\.\s*\d+(?:\s*[\^]?\s*\d+)?(?:\s*alin\.\s*\([0-9]+\))?(?:\s*lit\.\s*[a-z]\))?\s*(?:Cod penal|CP|Cod administrativ|CPC|CPP)?\b",
                           t, flags=re.IGNORECASE)
