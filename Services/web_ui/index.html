@@ -189,13 +189,14 @@
               <th>Instanța</th>
               <th>Localitate</th>
               <th>Dosar</th>
-              <th>Tip</th>
-              <th>Domeniu</th>
+              <th>Denumire</th>
+              <th>Tip Dosar</th>
+              <th>Tematica</th>
               <th>Judecător</th>
               <th>Avocat</th>
-              <th>Articole</th>
               <th>Soluție</th>
-              <th>Data</th>
+              <th>Articole</th>
+              <th>Data Pronunțării</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -281,18 +282,34 @@
 
       for (const d of rows) {
         const ext = d.extracted || d;
+
+        // Truncate long text for denumire and tematica
+        const denumire = d.denumire || "—";
+        const denumireTrunc = denumire.length > 80 ? denumire.substring(0, 77) + "..." : denumire;
+
+        const tematica = d.tematica || "—";
+        const tematicaTrunc = tematica.length > 60 ? tematica.substring(0, 57) + "..." : tematica;
+
+        // Get tip_dosar with badge color
+        const tipDosar = d.tip_dosar || ext.doc_type || "N/A";
+        let tipBadgeColor = "badge-blue";
+        if (tipDosar.toLowerCase().includes("penal")) tipBadgeColor = "badge-red";
+        else if (tipDosar.toLowerCase().includes("civil")) tipBadgeColor = "badge-green";
+        else if (tipDosar.toLowerCase().includes("administrativ")) tipBadgeColor = "badge-yellow";
+
         const tr = document.createElement("tr");
         tr.innerHTML = `
-          <td>${esc(ext.instanta || d.instanta)}</td>
-          <td>${esc(ext.localitate || d.localitate)}</td>
-          <td>${esc(ext.dosar_nr || d.dosar)}</td>
-          <td><span class="badge badge-blue">${esc(ext.doc_type || 'N/A')}</span></td>
-          <td><span class="badge badge-yellow">${esc(ext.domain || 'N/A')}</span></td>
-          <td>${esc(ext.judecator ?? "—")}</td>
-          <td>${esc(ext.avocat ?? "—")}</td>
-          <td>${esc((ext.articole || []).slice(0,2).join(", "))}${(ext.articole||[]).length > 2 ? '...' : ''}</td>
+          <td><strong>${esc(ext.instanta || d.instanta || "—")}</strong></td>
+          <td>${esc(ext.localitate || ext.sediu || "—")}</td>
+          <td>${esc(ext.dosar_nr || d.dosar || "—")}</td>
+          <td style="max-width:300px" title="${esc(denumire)}">${esc(denumireTrunc)}</td>
+          <td><span class="badge ${tipBadgeColor}">${esc(tipDosar)}</span></td>
+          <td style="max-width:250px" title="${esc(tematica)}">${esc(tematicaTrunc)}</td>
+          <td>${esc(ext.judecator || d.judecator || "—")}</td>
+          <td>${esc(ext.avocat || "—")}</td>
           <td><span class="badge badge-green"><b>${esc(ext.solutie || 'N/A')}</b></span></td>
-          <td>${esc(ext.data_pronuntarii || d.data_pron)}</td>
+          <td>${esc((ext.articole || []).slice(0,3).join(", "))}${(ext.articole||[]).length > 3 ? '...' : ''}</td>
+          <td>${esc(ext.data_pronuntarii || d.data_pron || "—")}</td>
         `;
         tbody.appendChild(tr);
       }
