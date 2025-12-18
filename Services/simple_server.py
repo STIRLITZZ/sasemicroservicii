@@ -115,12 +115,13 @@ class StandaloneHandler(SimpleHTTPRequestHandler):
         # Pornește procesarea în background
         def run_processing():
             try:
-                # Rulează scriptul Python
+                # Rulează scriptul Python RAPID
                 result = subprocess.run(
-                    ['python', 'standalone_processor.py', date_range, STANDALONE_FILE, str(max_pages)],
+                    ['python', 'process_fast.py', date_range, str(max_pages)],
                     capture_output=True,
                     text=True,
-                    cwd=os.path.dirname(os.path.abspath(__file__))
+                    cwd=os.path.dirname(os.path.abspath(__file__)),
+                    timeout=600  # 10 minute max
                 )
 
                 job = jobs[job_id]
