@@ -570,18 +570,37 @@
       try {
         // Fetch fără limit pentru a lua toate cazurile
         const r = await fetch("/api/cases?limit=10000");
+
+        if (!r.ok) {
+          out(`❌ Eroare API: ${r.status} ${r.statusText}`);
+          return;
+        }
+
         const data = await r.json();
-        out(`✅ Încărcat ${data.cases.length} / ${data.total} cazuri procesate`);
-        if(data.cases && data.cases.length > 0){
-          renderStats(data.cases);
-          renderExtractedTable(data.cases);
+
+        // Verifică dacă avem structura corectă
+        if (!data || typeof data !== 'object') {
+          out(`❌ Răspuns invalid de la server`);
+          return;
+        }
+
+        const total = data.total || 0;
+        const cases = data.cases || [];
+
+        out(`✅ Încărcat ${cases.length} / ${total} cazuri procesate`);
+
+        if(cases.length > 0){
+          renderStats(cases);
+          renderExtractedTable(cases);
         } else {
           out("ℹ️ Nu există cazuri procesate încă. Rulează scraping-ul mai întâi.");
         }
+
         // Încarcă și insights DWH
         await loadDWHInsights();
       } catch(e) {
         out("❌ Eroare: " + e.message);
+        console.error("Load enriched cases error:", e);
       }
     }
 
