@@ -10,8 +10,12 @@ LIST_URL = BASE_URL + "/ro/hotaririle-instantei"
 
 async def fetch_page(client: httpx.AsyncClient, date_range: str, page: int) -> list[dict]:
     params = {"date": date_range, "page": page}
-    r = await client.get(LIST_URL, params=params)
-    r.raise_for_status()
+    try:
+        r = await client.get(LIST_URL, params=params)
+        r.raise_for_status()
+    except Exception as e:
+        print(f"[scraper] Eroare la pagina {page}: {e}")
+        return []
 
     soup = BeautifulSoup(r.text, "html.parser")
     table = soup.find("table")
@@ -64,7 +68,10 @@ async def scrape_async(date_range: str, max_pages: int = 200, concurrency: int =
     sem = asyncio.Semaphore(concurrency)
     results: list[dict] = []
 
-    async with httpx.AsyncClient(headers=headers, timeout=timeout, limits=limits) as client:
+    print(f"[scraper] Start scraping pentru date_range={date_range}, max_pages={max_pages}, concurrency={concurrency}")
+
+    # trust_env=False dezactivează proxy-uri din variabile de mediu care pot bloca scraping-ul
+    async with httpx.AsyncClient(headers=headers, timeout=timeout, limits=limits, trust_env=False) as client:
 
         async def guarded(page: int):
             async with sem:
@@ -75,12 +82,14 @@ async def scrape_async(date_range: str, max_pages: int = 200, concurrency: int =
             batch_pages = list(range(page, min(page + concurrency, max_pages + 1)))
             batch = await asyncio.gather(*(guarded(p) for p in batch_pages))
 
-            # oprește când prima pagină “goală” apare în batch
+            # oprește când prima pagină "goală" apare în batch
             stop = False
-            for items in batch:
+            for page_num, items in zip(batch_pages, batch):
                 if not items:
+                    print(f"[scraper] Pagina {page_num} este goală - oprire scraping")
                     stop = True
                 else:
+                    print(f"[scraper] Pagina {page_num}: găsite {len(items)} hotărâri")
                     results.extend(items)
 
             if stop:
@@ -88,4 +97,5 @@ async def scrape_async(date_range: str, max_pages: int = 200, concurrency: int =
 
             page += concurrency
 
+    print(f"[scraper] Finalizat: total {len(results)} hotărâri găsite")
     return results
