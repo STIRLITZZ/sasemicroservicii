@@ -622,8 +622,8 @@
         const dr = `${selectedDate} TO ${selectedDate}`;
 
         // Mod standalone - procesare directă în backend (ÎNTOTDEAUNA)
-        out(`🚀 Start procesare pentru ${selectedDate}...`);
-        const r = await fetch(`/api/standalone/run?date_range=${encodeURIComponent(dr)}&max_pages=50`, {
+        out(`🚀 Start procesare RAPIDĂ pentru ${selectedDate}...`);
+        const r = await fetch(`/api/standalone/run?date_range=${encodeURIComponent(dr)}&max_pages=20`, {
           method:"POST", cache:"no-store"
         });
         const txt = await r.text();

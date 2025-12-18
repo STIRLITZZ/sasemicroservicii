@@ -68,26 +68,42 @@ async def scrape_page(client: httpx.AsyncClient, date_range: str, page: int) -> 
     return out
 
 
-async def scrape_all(date_range: str, max_pages: int = 50) -> list[dict]:
-    """Scrapează toate paginile pentru un interval de date"""
-    print(f"[standalone] Start scraping pentru {date_range}")
+async def scrape_all(date_range: str, max_pages: int = 20) -> list[dict]:
+    """Scrapează toate paginile pentru un interval de date (paralel pentru viteză)"""
+    print(f"[standalone] Start scraping RAPID pentru {date_range}")
 
     headers = {"User-Agent": "Mozilla/5.0"}
-    timeout = httpx.Timeout(60.0)
+    timeout = httpx.Timeout(30.0)  # Reduced timeout
+    limits = httpx.Limits(max_connections=10, max_keepalive_connections=10)
 
     results = []
+    concurrency = 5  # Procesează 5 pagini simultan
 
-    async with httpx.AsyncClient(headers=headers, timeout=timeout, trust_env=False) as client:
+    async with httpx.AsyncClient(headers=headers, timeout=timeout, limits=limits, trust_env=False) as client:
         page = 1
         while page <= max_pages:
-            items = await scrape_page(client, date_range, page)
-            if not items:
-                print(f"[standalone] Pagina {page} goală - stop")
+            # Procesează 5 pagini în paralel
+            batch_pages = list(range(page, min(page + concurrency, max_pages + 1)))
+
+            # Fetch toate paginile din batch simultan
+            tasks = [scrape_page(client, date_range, p) for p in batch_pages]
+            batch_results = await asyncio.gather(*tasks)
+
+            # Verifică dacă am găsit pagini goale
+            has_empty = False
+            for page_num, items in zip(batch_pages, batch_results):
+                if not items:
+                    print(f"[standalone] Pagina {page_num} goală - stop")
+                    has_empty = True
+                    break
+                else:
+                    print(f"[standalone] Pagina {page_num}: {len(items)} hotărâri")
+                    results.extend(items)
+
+            if has_empty:
                 break
 
-            print(f"[standalone] Pagina {page}: {len(items)} hotărâri")
-            results.extend(items)
-            page += 1
+            page += concurrency
 
     print(f"[standalone] Total scraped: {len(results)} hotărâri")
     return results
@@ -282,7 +298,7 @@ def enrich_cases(cases: list[dict]) -> list[dict]:
 
 # ============= MAIN PIPELINE =============
 
-async def process_standalone(date_range: str, output_file: str = "./data/standalone/cases.json", max_pages: int = 50) -> dict:
+async def process_standalone(date_range: str, output_file: str = "./data/standalone/cases.json", max_pages: int = 20) -> dict:
     """
     Rulează tot pipeline-ul standalone:
     1. Scraping
@@ -307,11 +323,11 @@ async def process_standalone(date_range: str, output_file: str = "./data/standal
         cases = validate_and_dedup(cases)
         validated_count = len(cases)
 
-        # 3. PDF processing (opțional, poate fi lent)
-        # Pentru versiunea rapidă, poți sări acest pas
+        # 3. PDF processing - DEZACTIVAT pentru viteză (foarte lent!)
+        # Dacă vrei să procesezi și PDF-urile, decomentează linia de jos:
         # cases = await process_pdfs(cases)
 
-        # 4. Extract metadata (folosește datele din tabel, nu din PDF)
+        # 4. Extract metadata RAPID (folosește doar datele din tabel, NU PDF)
         cases = enrich_cases(cases)
 
         # 5. Salvează rezultate
@@ -360,7 +376,7 @@ if __name__ == "__main__":
 
     date_range = sys.argv[1]
     output_file = sys.argv[2] if len(sys.argv) > 2 else "./data/standalone/cases.json"
-    max_pages = int(sys.argv[3]) if len(sys.argv) > 3 else 50
+    max_pages = int(sys.argv[3]) if len(sys.argv) > 3 else 20  # Default 20 pagini pentru viteză
 
     result = asyncio.run(process_standalone(date_range, output_file, max_pages))
 

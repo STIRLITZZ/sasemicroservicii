@@ -99,7 +99,7 @@ class StandaloneHandler(SimpleHTTPRequestHandler):
             self.send_json_response({"error": "date_range required"}, status=400)
             return
 
-        max_pages = int(query.get('max_pages', ['50'])[0])
+        max_pages = int(query.get('max_pages', ['20'])[0])  # Default 20 pentru viteză
         job_id = f"standalone-{int(time.time() * 1000)}"
 
         # Inițializează job
