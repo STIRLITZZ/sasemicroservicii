@@ -21,8 +21,13 @@ class JobStart(BaseModel):
 
 def parse_date_range(date_range: str) -> tuple[str, str]:
     """Parsează string-ul de interval și returnează (start_date, end_date)"""
-    # Format: "2024-01-01" sau "2024-01-01 - 2024-01-31"
-    if " - " in date_range:
+    # Format: "2024-01-01" sau "2024-01-01 - 2024-01-31" sau "2024-01-01 TO 2024-01-31"
+    if " TO " in date_range:
+        # Format portal.just.ro: "2024-01-01 TO 2024-01-31"
+        parts = date_range.split(" TO ")
+        return parts[0].strip(), parts[1].strip()
+    elif " - " in date_range:
+        # Format cu cratimă: "2024-01-01 - 2024-01-31"
         parts = date_range.split(" - ")
         return parts[0].strip(), parts[1].strip()
     else:
