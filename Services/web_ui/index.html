@@ -187,16 +187,16 @@
           <thead>
             <tr>
               <th>Instanța</th>
+              <th>Localitate</th>
               <th>Dosar</th>
               <th>Denumire</th>
               <th>Tip Dosar</th>
               <th>Tematica</th>
               <th>Judecător</th>
+              <th>Avocat</th>
               <th>Soluție</th>
               <th>Articole</th>
               <th>Data Pronunțării</th>
-              <th>Data Înregistrării</th>
-              <th>Data Publicării</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -300,16 +300,16 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><strong>${esc(ext.instanta || d.instanta || "—")}</strong></td>
+          <td>${esc(ext.localitate || ext.sediu || "—")}</td>
           <td>${esc(ext.dosar_nr || d.dosar || "—")}</td>
           <td style="max-width:300px" title="${esc(denumire)}">${esc(denumireTrunc)}</td>
           <td><span class="badge ${tipBadgeColor}">${esc(tipDosar)}</span></td>
           <td style="max-width:250px" title="${esc(tematica)}">${esc(tematicaTrunc)}</td>
           <td>${esc(ext.judecator || d.judecator || "—")}</td>
+          <td>${esc(ext.avocat || "—")}</td>
           <td><span class="badge badge-green"><b>${esc(ext.solutie || 'N/A')}</b></span></td>
           <td>${esc((ext.articole || []).slice(0,3).join(", "))}${(ext.articole||[]).length > 3 ? '...' : ''}</td>
           <td>${esc(ext.data_pronuntarii || d.data_pron || "—")}</td>
-          <td>${esc(d.data_inreg || "—")}</td>
-          <td>${esc(d.data_publ || "—")}</td>
         `;
         tbody.appendChild(tr);
       }
