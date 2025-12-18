@@ -568,12 +568,15 @@
 
     async function loadEnrichedCases(){
       try {
-        const r = await fetch("/api/cases?limit=500");
+        // Fetch fără limit pentru a lua toate cazurile
+        const r = await fetch("/api/cases?limit=10000");
         const data = await r.json();
-        out(`✅ Încărcat ${data.total} cazuri procesate`);
+        out(`✅ Încărcat ${data.cases.length} / ${data.total} cazuri procesate`);
         if(data.cases && data.cases.length > 0){
           renderStats(data.cases);
           renderExtractedTable(data.cases);
+        } else {
+          out("ℹ️ Nu există cazuri procesate încă. Rulează scraping-ul mai întâi.");
         }
         // Încarcă și insights DWH
         await loadDWHInsights();
