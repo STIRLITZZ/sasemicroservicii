@@ -54,15 +54,13 @@ async def process_event(event: dict):
                 with open(txt_file, "w", encoding="utf-8") as f:
                     f.write(text)
 
-            # Publică rezultatul
+            # Publică rezultatul - păstrează TOATE datele din event original
             out = {
-                "dedup_key": event["dedup_key"],
-                "instanta": event["instanta"],
-                "dosar": event["dosar"],
+                **event,  # Include tot: instanta, dosar, denumire, tematica, judecator, tip_dosar, etc.
                 "pdf_path": pdf_file,
                 "txt_path": txt_file,
                 "text_chars": len(text),
-                "status": "OK"
+                "status": "text_extracted"
             }
 
             send(producer, "court.text", out)
