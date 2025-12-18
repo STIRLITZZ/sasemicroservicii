@@ -25,19 +25,27 @@ async def fetch_page(client: httpx.AsyncClient, date_range: str, page: int) -> l
     out = []
     for tr in rows:
         tds = tr.find_all("td")
-        if len(tds) < 4:
+        if len(tds) < 10:
             continue
 
         pdf_a = tds[-1].find("a", href=True)
         if not pdf_a:
             continue
 
+        # Parsează toate cele 10 coloane din tabel:
+        # 0: Instanță, 1: Dosar, 2: Denumire, 3: Data pronunțării, 4: Data înregistrării
+        # 5: Data publicării, 6: Tip dosar, 7: Tematica, 8: Judecător, 9: PDF
         out.append({
             "source": "instante.justice.md",
             "instanta": tds[0].get_text(strip=True),
             "dosar": tds[1].get_text(strip=True),
             "denumire": tds[2].get_text(" ", strip=True),
             "data_pron": tds[3].get_text(strip=True),
+            "data_inreg": tds[4].get_text(strip=True),
+            "data_publ": tds[5].get_text(strip=True),
+            "tip_dosar": tds[6].get_text(strip=True),
+            "tematica": tds[7].get_text(strip=True),
+            "judecator": tds[8].get_text(strip=True),
             "pdf_url": urljoin(BASE_URL + "/", pdf_a["href"].strip())
         })
 
