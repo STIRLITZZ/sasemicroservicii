@@ -52,24 +52,24 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>📊 Dashboard Date Juridice</h1>
+    <h1>Dashboard Date Juridice</h1>
     <div class="muted">Platforma de analiză și vizualizare hotărâri judecătorești</div>
 
     <div class="grid grid2" style="margin-top:20px">
       <div class="card">
-        <h2>⚙️ Control Panel</h2>
+        <h2>Control Panel</h2>
         <div class="row">
-          <button onclick="health()">🔍 Check Status</button>
+          <button onclick="health()">Check Status</button>
           <span id="svcPills"></span>
         </div>
         <div class="row" style="margin-top:12px">
-          <button onclick="loadEnrichedCases()">📥 Încarcă Date</button>
+          <button onclick="loadEnrichedCases()">Încarcă Date</button>
           <span class="muted">Afișează toate cazurile procesate</span>
         </div>
       </div>
 
       <div class="card">
-        <h2>🔄 Scraping Date Noi</h2>
+        <h2>Scraping Date Noi</h2>
         <div class="row" style="gap:12px">
           <div class="pill">
             <input id="modeToggle" type="checkbox" onchange="toggleMode()" />
@@ -83,23 +83,23 @@
             <span class="muted">→</span>
             <input id="endDate" type="date" />
           </div>
-          <button onclick="runIngestion()">▶️ Start</button>
+          <button onclick="runIngestion()">Start</button>
         </div>
       </div>
     </div>
 
     <div class="card" style="margin-top:20px">
-      <h2>📤 Upload & Extract</h2>
+      <h2>Upload & Extract</h2>
       <div class="row">
         <input type="file" id="txtFile" />
-        <button onclick="extractTxt()">🔍 Extrage Metadate</button>
+        <button onclick="extractTxt()">Extrage Metadate</button>
       </div>
       <pre id="out" style="margin-top:12px">{}</pre>
     </div>
 
     <!-- Summary Stats -->
     <div class="card" style="margin-top:20px; display:none" id="summaryCard">
-      <h2>📈 Statistici Generale</h2>
+      <h2>Statistici Generale</h2>
       <div class="stats-summary">
         <div class="stat-box">
           <div class="stat-label">Total Cazuri</div>
@@ -126,53 +126,53 @@
 
     <!-- DWH Insights -->
     <div class="card" style="margin-top:20px; display:none" id="dwhInsights">
-      <h2>💡 Insights DWH (Data Warehouse)</h2>
+      <h2>Insights DWH (Data Warehouse)</h2>
       <p class="muted">Analize automate generate din warehouse</p>
       <div id="insightsList" style="margin-top:12px"></div>
       <div class="row" style="margin-top:16px">
-        <button onclick="loadDWHInsights()">🔄 Reîncarcă Insights</button>
+        <button onclick="loadDWHInsights()">Reîncarcă Insights</button>
       </div>
     </div>
 
     <!-- Charts Grid -->
     <div class="grid grid3" style="margin-top:20px; display:none" id="chartsSection">
       <div class="card">
-        <h3>🏛️ Top 15 Instanțe</h3>
+        <h3>Top 15 Instanțe</h3>
         <div class="chart-container chart-small">
           <canvas id="chartByCourt"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h3>⚖️ Domenii Juridice</h3>
+        <h3>Domenii Juridice</h3>
         <div class="chart-container chart-small">
           <canvas id="chartByDomain"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h3>📋 Tipuri Documente</h3>
+        <h3>Tipuri Documente</h3>
         <div class="chart-container chart-small">
           <canvas id="chartByDocType"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h3>✅ Soluții Pronunțate</h3>
+        <h3>Soluții Pronunțate</h3>
         <div class="chart-container chart-small">
           <canvas id="chartBySolution"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h3>📅 Distribuție Temporală</h3>
+        <h3>Distribuție Temporală</h3>
         <div class="chart-container chart-small">
           <canvas id="chartByMonth"></canvas>
         </div>
       </div>
 
       <div class="card">
-        <h3>👨‍⚖️ Top 10 Judecători</h3>
+        <h3>Top 10 Judecători</h3>
         <div class="chart-container chart-small">
           <canvas id="chartByJudge"></canvas>
         </div>
@@ -181,7 +181,7 @@
 
     <!-- Data Table -->
     <div class="card" style="margin-top:20px; display:none" id="tableSection">
-      <h2>📄 Tabel Detaliat</h2>
+      <h2>Tabel Detaliat</h2>
       <div style="overflow:auto; max-height:600px; border:1px solid #1e293b; border-radius:8px">
         <table id="dataTable">
           <thead>
@@ -206,31 +206,31 @@
 
     <!-- Chart Builder -->
     <div class="chart-builder" style="display:none" id="chartBuilder">
-      <h2>🎨 Constructor Grafic Personalizat</h2>
+      <h2>Constructor Grafic Personalizat</h2>
       <p class="muted">Creează grafice personalizate din datele tale</p>
 
       <div class="builder-controls">
         <div class="control-group">
           <label class="control-label">Tip Grafic</label>
           <select id="customChartType" onchange="updateCustomChart()">
-            <option value="bar">📊 Bare</option>
-            <option value="horizontalBar">📊 Bare Orizontale</option>
-            <option value="pie">🥧 Pie Chart</option>
-            <option value="doughnut">🍩 Doughnut</option>
-            <option value="line">📈 Linie</option>
+            <option value="bar">Bare</option>
+            <option value="horizontalBar">Bare Orizontale</option>
+            <option value="pie">Pie Chart</option>
+            <option value="doughnut">Doughnut</option>
+            <option value="line">Linie</option>
           </select>
         </div>
 
         <div class="control-group">
           <label class="control-label">Grupare Date După</label>
           <select id="customGroupBy" onchange="updateCustomChart()">
-            <option value="instanta">🏛️ Instanță</option>
-            <option value="domain">⚖️ Domeniu</option>
-            <option value="doc_type">📋 Tip Document</option>
-            <option value="solutie">✅ Soluție</option>
-            <option value="judecator">👨‍⚖️ Judecător</option>
-            <option value="localitate">📍 Localitate</option>
-            <option value="procedura">⚙️ Procedură</option>
+            <option value="instanta">Instanță</option>
+            <option value="domain">Domeniu</option>
+            <option value="doc_type">Tip Document</option>
+            <option value="solutie">Soluție</option>
+            <option value="judecator">Judecător</option>
+            <option value="localitate">Localitate</option>
+            <option value="procedura">Procedură</option>
           </select>
         </div>
 
@@ -247,7 +247,7 @@
 
         <div class="control-group">
           <label class="control-label">Acțiune</label>
-          <button onclick="updateCustomChart()" style="width:100%">🔄 Actualizează</button>
+          <button onclick="updateCustomChart()" style="width:100%">Actualizează</button>
         </div>
       </div>
 
@@ -555,21 +555,21 @@
         const j = await r.json();
         out(JSON.stringify(j,null,2));
         if(j.status==="done"){
-          out("✅ Scraping complet. Se procesează datele...");
+          out("Scraping complet. Se procesează datele...");
           await new Promise(r=>setTimeout(r,3000));
           await loadEnrichedCases();
           return;
         }
         if(j.status==="skipped"){
-          out(`ℹ️ ${j.message || "Perioada a fost deja procesată"}`);
-          out("📊 Încărcare date existente...");
+          out(`INFO: ${j.message || "Perioada a fost deja procesată"}`);
+          out("Încărcare date existente...");
           await loadEnrichedCases();
           return;
         }
         if(j.status==="error") return;
         await new Promise(r=>setTimeout(r,1000));
       }
-      out("⏱️ Timeout.");
+      out("Timeout.");
     }
 
     async function loadEnrichedCases(){
@@ -600,7 +600,7 @@
         const r = await fetch(url);
 
         if (!r.ok) {
-          out(`❌ Eroare API: ${r.status} ${r.statusText}`);
+          out(`EROARE API: ${r.status} ${r.statusText}`);
           return;
         }
 
@@ -608,7 +608,7 @@
 
         // Verifică dacă avem structura corectă
         if (!data || typeof data !== 'object') {
-          out(`❌ Răspuns invalid de la server`);
+          out(`EROARE: Răspuns invalid de la server`);
           return;
         }
 
@@ -617,7 +617,7 @@
         const cases = data.cases || [];
 
         // Mesaj care arată filtrarea
-        let msg = `✅ Încărcat ${cases.length} / ${total} cazuri`;
+        let msg = `Încărcat ${cases.length} / ${total} cazuri`;
         if (startDate || endDate) {
           msg += ` (filtrate din ${totalUnfiltered} total)`;
           if (startDate && endDate && startDate === endDate) {
@@ -636,13 +636,13 @@
           renderStats(cases);
           renderExtractedTable(cases);
         } else {
-          out("ℹ️ Nu există cazuri procesate încă. Rulează scraping-ul mai întâi.");
+          out("INFO: Nu există cazuri procesate încă. Rulează scraping-ul mai întâi.");
         }
 
         // Încarcă și insights DWH
         await loadDWHInsights();
       } catch(e) {
-        out("❌ Eroare: " + e.message);
+        out("EROARE: " + e.message);
         console.error("Load enriched cases error:", e);
       }
     }
@@ -689,7 +689,7 @@
           if (j.job_id) await pollJob(j.job_id);
         } catch (_) {}
       } catch (e) {
-        out("❌ " + String(e.message || e));
+        out("EROARE: " + String(e.message || e));
       }
     }
 
@@ -710,7 +710,7 @@
       const j = await r.json();
       document.getElementById("svcPills").innerHTML =
         Object.entries(j).map(([k,v]) =>
-          `<span class="pill ${v.ok?"ok":"bad"}">${k}: ${v.ok?"✅":"❌"}</span>`
+          `<span class="pill ${v.ok?"ok":"bad"}">${k}: ${v.ok?"OK":"ERR"}</span>`
         ).join(" ");
       out(JSON.stringify(j,null,2));
     }
