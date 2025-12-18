@@ -35,10 +35,23 @@ print(f"[ms_storage] Storing to {STORAGE_FILE}")
 print(f"[ms_storage] Batch size: {BATCH_SIZE}, timeout: {BATCH_TIMEOUT}s")
 
 # Încarcă datele existente
+cases = []
 if os.path.exists(STORAGE_FILE):
-    with open(STORAGE_FILE, "r", encoding="utf-8") as f:
-        cases = json.load(f)
-else:
+    try:
+        with open(STORAGE_FILE, "r", encoding="utf-8") as f:
+            content = f.read().strip()
+            if content:  # Verifică dacă fișierul nu e gol
+                cases = json.loads(content)
+            else:
+                print("[WARN] cases.json is empty, starting with empty list")
+    except json.JSONDecodeError as e:
+        print(f"[ERROR] Invalid JSON in {STORAGE_FILE}: {e}. Starting with empty list.")
+    except Exception as e:
+        print(f"[ERROR] Failed to load {STORAGE_FILE}: {e}. Starting with empty list.")
+
+# Asigură-te că avem un array valid
+if not isinstance(cases, list):
+    print(f"[WARN] cases.json contains {type(cases)}, not list. Resetting to empty list.")
     cases = []
 
 # Index pentru deduplicare rapidă
