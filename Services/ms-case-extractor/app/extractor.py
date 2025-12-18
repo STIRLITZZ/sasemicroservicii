@@ -289,9 +289,44 @@ def extract_from_parsed_data(parsed_data: Dict[str, Any], text: Optional[str] = 
             res.solutie = "anulare act administrativ"
             res.confidence["solutie"] = 0.85
 
-    # Dacă avem text din PDF, extragem articolele de lege (asta nu vine din tabel)
+    # Dacă avem text din PDF, extragem articolele de lege + localitate + avocat
     if text:
         t = _norm_spaces(text)
+
+        # Localitate (nu vine din tabel, doar din PDF)
+        if not res.localitate:
+            res.localitate = _find_first(
+                [
+                    r"\b(mun\.\s*[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\- ]+)\b",
+                    r"\b(or\.\s*[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\- ]+)\b",
+                    r"\b(orașul\s+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\- ]+)\b",
+                ],
+                t,
+                flags=re.IGNORECASE
+            )
+            if res.localitate:
+                res.confidence["localitate"] = 0.8
+
+        # Sediu (alternativă pentru localitate)
+        if not res.sediu:
+            res.sediu = _find_first(
+                [r"\(\s*sediul\s+([A-ZĂÂÎȘȚa-zăâîșț\- ]+)\s*\)"],
+                t,
+                flags=re.IGNORECASE
+            )
+
+        # Avocat (nu vine din tabel, doar din PDF)
+        if not res.avocat:
+            res.avocat = _find_first(
+                [
+                    r"\bAvocatului\s+([A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+(?:\s+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+)*)\b",
+                    r"\bApărătorului\s+([A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+(?:\s+[A-ZĂÂÎȘȚ][A-Za-zĂÂÎȘȚăâîșț\-]+)*)\b",
+                ],
+                t,
+                flags=re.IGNORECASE
+            )
+            if res.avocat:
+                res.confidence["avocat"] = 0.75
 
         # Articole de lege
         arts = re.findall(r"\bart\.\s*\d+(?:\s*[\^]?\s*\d+)?(?:\s*alin\.\s*\([0-9]+\))?(?:\s*lit\.\s*[a-z]\))?\s*(?:Cod penal|CP|Cod administrativ|CPC|CPP)?\b",
