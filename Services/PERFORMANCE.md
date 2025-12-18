@@ -2,7 +2,7 @@
 
 Acest document descrie optimizările de performanță implementate în microservicii.
 
-## 📊 Îmbunătățiri de performanță
+## Îmbunătățiri de performanță
 
 ### 1. **ms_pdftext** - Download-uri PDF paralele (5x mai rapid)
 
@@ -11,10 +11,10 @@ Acest document descrie optimizările de performanță implementate în microserv
 - Blocare pe I/O pentru fiecare PDF
 
 **Optimizări:**
-- ✅ Download asincron cu `httpx`
-- ✅ Procesare paralelă cu `asyncio` (5 PDF-uri simultan)
-- ✅ Semaphore pentru control concurrency
-- ✅ Configurabil prin `PDF_CONCURRENCY` env var
+- Download asincron cu `httpx`
+- Procesare paralelă cu `asyncio` (5 PDF-uri simultan)
+- Semaphore pentru control concurrency
+- Configurabil prin `PDF_CONCURRENCY` env var
 
 **Impact:**
 - **Viteza:** De la 1 PDF/secundă la 5 PDF/secundă
@@ -33,9 +33,9 @@ Acest document descrie optimizările de performanță implementate în microserv
 - I/O intensiv și ineficient
 
 **Optimizări:**
-- ✅ Batching: acumulează 10 mesaje înainte de scriere
-- ✅ Timeout flush: scrie automat după 5 secunde
-- ✅ Reducere drastică a operațiunilor I/O
+- Batching: acumulează 10 mesaje înainte de scriere
+- Timeout flush: scrie automat după 5 secunde
+- Reducere drastică a operațiunilor I/O
 
 **Impact:**
 - **I/O operations:** De la 100 writes la 10 writes (pentru 100 mesaje)
@@ -57,9 +57,9 @@ environment:
 - Procesare unul câte unul
 
 **Optimizări:**
-- ✅ Citire async cu `aiofiles`
-- ✅ Procesare paralelă cu asyncio (10 fișiere simultan)
-- ✅ Queue management pentru control flux
+- Citire async cu `aiofiles`
+- Procesare paralelă cu asyncio (10 fișiere simultan)
+- Queue management pentru control flux
 
 **Impact:**
 - **Viteza:** De la 1 fișier/secundă la 10 fișiere/secundă
@@ -76,11 +76,11 @@ environment:
 ### 4. **Kafka Producers** - Batching și compresie
 
 **Optimizări aplicate în toate serviciile:**
-- ✅ **Batching:** `linger.ms=100` - așteaptă 100ms pentru batch
-- ✅ **Batch size:** 64KB pentru mesaje acumulate
-- ✅ **Compresie LZ4:** compresie rapidă pentru eficiență bandwidth
-- ✅ **ACKs optimizat:** `acks=1` pentru latency mai mică
-- ✅ **Retries:** 3 retry-uri pentru reliability
+- **Batching:** `linger.ms=100` - așteaptă 100ms pentru batch
+- **Batch size:** 64KB pentru mesaje acumulate
+- **Compresie LZ4:** compresie rapidă pentru eficiență bandwidth
+- **ACKs optimizat:** `acks=1` pentru latency mai mică
+- **Retries:** 3 retry-uri pentru reliability
 
 **Impact:**
 - **Network bandwidth:** Reducere cu 40-60% prin compresie
@@ -94,7 +94,7 @@ environment:
 
 ---
 
-## 🚀 Performanță generală pipeline
+## Performanță generală pipeline
 
 ### Viteze estimate pentru 100 cazuri:
 
@@ -112,7 +112,7 @@ environment:
 
 ---
 
-## ⚙️ Configurare pentru performanță maximă
+## Configurare pentru performanță maximă
 
 ### Pentru volume mari (500+ cazuri):
 
@@ -147,7 +147,7 @@ services:
 
 ---
 
-## 📈 Monitoring
+## Monitoring
 
 ### Log markers pentru performanță:
 
@@ -170,7 +170,7 @@ docker logs ms_case_extractor_consumer-1 | grep "\[OK\]"
 
 ---
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Dacă procesarea e prea lentă:
 
@@ -186,7 +186,7 @@ docker logs ms_case_extractor_consumer-1 | grep "\[OK\]"
 
 ---
 
-## 📝 Summary
+## Summary
 
 | Optimizare | Impact | Configurabil |
 |-----------|--------|--------------|
@@ -196,4 +196,4 @@ docker logs ms_case_extractor_consumer-1 | grep "\[OK\]"
 | Kafka compression | 40-60% bandwidth | Built-in |
 | **TOTAL PIPELINE** | **5x mai rapid** | - |
 
-Procesare: **De la ~3.5 minute la ~40 secunde pentru 100 cazuri!** 🚀
+Procesare: **De la ~3.5 minute la ~40 secunde pentru 100 cazuri!**
