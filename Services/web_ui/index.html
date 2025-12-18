@@ -560,6 +560,12 @@
           await loadEnrichedCases();
           return;
         }
+        if(j.status==="skipped"){
+          out(`ℹ️ ${j.message || "Perioada a fost deja procesată"}`);
+          out("📊 Încărcare date existente...");
+          await loadEnrichedCases();
+          return;
+        }
         if(j.status==="error") return;
         await new Promise(r=>setTimeout(r,1000));
       }
@@ -568,8 +574,30 @@
 
     async function loadEnrichedCases(){
       try {
-        // Fetch fără limit pentru a lua toate cazurile
-        const r = await fetch("/api/cases?limit=10000");
+        // Construiește URL-ul cu filtrare pe date dacă sunt selectate
+        let url = "/api/cases?limit=10000";
+
+        const isRangeMode = document.getElementById("modeToggle").checked;
+        let startDate, endDate;
+
+        if (isRangeMode) {
+          // Mod interval
+          startDate = document.getElementById("startDate").value;
+          endDate = document.getElementById("endDate").value;
+        } else {
+          // Mod dată unică - folosește aceeași dată pentru start și end
+          const singleDate = document.getElementById("singleDate").value;
+          if (singleDate) {
+            startDate = singleDate;
+            endDate = singleDate;
+          }
+        }
+
+        // Adaugă parametrii de dată la URL dacă există
+        if (startDate) url += `&start_date=${startDate}`;
+        if (endDate) url += `&end_date=${endDate}`;
+
+        const r = await fetch(url);
 
         if (!r.ok) {
           out(`❌ Eroare API: ${r.status} ${r.statusText}`);
@@ -585,9 +613,24 @@
         }
 
         const total = data.total || 0;
+        const totalUnfiltered = data.total_unfiltered || total;
         const cases = data.cases || [];
 
-        out(`✅ Încărcat ${cases.length} / ${total} cazuri procesate`);
+        // Mesaj care arată filtrarea
+        let msg = `✅ Încărcat ${cases.length} / ${total} cazuri`;
+        if (startDate || endDate) {
+          msg += ` (filtrate din ${totalUnfiltered} total)`;
+          if (startDate && endDate && startDate === endDate) {
+            msg += ` - doar data ${startDate}`;
+          } else if (startDate && endDate) {
+            msg += ` - interval ${startDate} → ${endDate}`;
+          } else if (startDate) {
+            msg += ` - după ${startDate}`;
+          } else {
+            msg += ` - înainte de ${endDate}`;
+          }
+        }
+        out(msg);
 
         if(cases.length > 0){
           renderStats(cases);

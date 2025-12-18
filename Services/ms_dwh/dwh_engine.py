@@ -74,6 +74,22 @@ class DWHEngine:
             )
         """)
 
+        # Tracking Table: Scraping History
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS scraping_history (
+                scraping_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date_range TEXT NOT NULL,
+                start_date TEXT NOT NULL,
+                end_date TEXT NOT NULL,
+                total_scraped INTEGER DEFAULT 0,
+                total_processed INTEGER DEFAULT 0,
+                status TEXT DEFAULT 'running',
+                started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP,
+                UNIQUE(start_date, end_date)
+            )
+        """)
+
         # Dimension: Document Types
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS dim_doc_type (
@@ -407,3 +423,89 @@ class DWHEngine:
             })
 
         return insights
+
+    def check_date_range_processed(self, start_date: str, end_date: str) -> Optional[Dict]:
+        """Verifică dacă perioada a fost deja procesată"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT scraping_id, date_range, total_scraped, total_processed,
+                   status, started_at, completed_at
+            FROM scraping_history
+            WHERE start_date = ? AND end_date = ?
+        """, (start_date, end_date))
+
+        row = cursor.fetchone()
+        if row:
+            return {
+                "scraping_id": row[0],
+                "date_range": row[1],
+                "total_scraped": row[2],
+                "total_processed": row[3],
+                "status": row[4],
+                "started_at": row[5],
+                "completed_at": row[6]
+            }
+        return None
+
+    def record_scraping_start(self, date_range: str, start_date: str, end_date: str) -> int:
+        """Înregistrează începutul unui proces de scraping"""
+        cursor = self.conn.cursor()
+
+        # Verifică dacă există deja
+        existing = self.check_date_range_processed(start_date, end_date)
+        if existing:
+            # Actualizează înregistrarea existentă
+            cursor.execute("""
+                UPDATE scraping_history
+                SET status = 'running', started_at = CURRENT_TIMESTAMP,
+                    completed_at = NULL, total_scraped = 0, total_processed = 0
+                WHERE scraping_id = ?
+            """, (existing["scraping_id"],))
+            self.conn.commit()
+            return existing["scraping_id"]
+
+        # Creează înregistrare nouă
+        cursor.execute("""
+            INSERT INTO scraping_history (date_range, start_date, end_date, status)
+            VALUES (?, ?, ?, 'running')
+        """, (date_range, start_date, end_date))
+
+        self.conn.commit()
+        return cursor.lastrowid
+
+    def update_scraping_progress(self, scraping_id: int, total_scraped: int):
+        """Actualizează progresul scraping-ului"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE scraping_history
+            SET total_scraped = ?
+            WHERE scraping_id = ?
+        """, (total_scraped, scraping_id))
+        self.conn.commit()
+
+    def record_scraping_complete(self, scraping_id: int, total_scraped: int, total_processed: int):
+        """Marchează scraping-ul ca fiind complet"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            UPDATE scraping_history
+            SET status = 'completed',
+                total_scraped = ?,
+                total_processed = ?,
+                completed_at = CURRENT_TIMESTAMP
+            WHERE scraping_id = ?
+        """, (total_scraped, total_processed, scraping_id))
+        self.conn.commit()
+
+    def get_scraping_history(self, limit: int = 10) -> List[Dict]:
+        """Returnează istoricul scraping-urilor"""
+        cursor = self.conn.cursor()
+        cursor.execute("""
+            SELECT scraping_id, date_range, start_date, end_date,
+                   total_scraped, total_processed, status,
+                   started_at, completed_at
+            FROM scraping_history
+            ORDER BY started_at DESC
+            LIMIT ?
+        """, (limit,))
+
+        return [dict(row) for row in cursor.fetchall()]

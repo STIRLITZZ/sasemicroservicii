@@ -99,3 +99,70 @@ def trigger_compute():
         return {"status": "success", "message": "Aggregates recomputed"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Endpoints pentru tracking scraping
+@app.get("/dwh/scraping/check")
+def check_scraping(start_date: str, end_date: str):
+    """Verifică dacă o perioadă a fost deja procesată"""
+    try:
+        result = dwh.check_date_range_processed(start_date, end_date)
+        if result:
+            return JSONResponse(content={
+                "processed": True,
+                "scraping_info": result
+            })
+        else:
+            return JSONResponse(content={"processed": False})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/dwh/scraping/start")
+def record_scraping_start(date_range: str, start_date: str, end_date: str):
+    """Înregistrează începutul unui scraping"""
+    try:
+        scraping_id = dwh.record_scraping_start(date_range, start_date, end_date)
+        return JSONResponse(content={
+            "status": "success",
+            "scraping_id": scraping_id,
+            "message": f"Scraping înregistrat cu ID {scraping_id}"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/dwh/scraping/progress")
+def update_scraping_progress(scraping_id: int, total_scraped: int):
+    """Actualizează progresul scraping-ului"""
+    try:
+        dwh.update_scraping_progress(scraping_id, total_scraped)
+        return JSONResponse(content={
+            "status": "success",
+            "message": f"Progres actualizat: {total_scraped} cazuri"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/dwh/scraping/complete")
+def record_scraping_complete(scraping_id: int, total_scraped: int, total_processed: int):
+    """Marchează scraping-ul ca fiind complet"""
+    try:
+        dwh.record_scraping_complete(scraping_id, total_scraped, total_processed)
+        return JSONResponse(content={
+            "status": "success",
+            "message": f"Scraping complet: {total_processed} cazuri procesate"
+        })
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dwh/scraping/history")
+def get_scraping_history(limit: int = 10):
+    """Returnează istoricul scraping-urilor"""
+    try:
+        history = dwh.get_scraping_history(limit=limit)
+        return JSONResponse(content={"history": history})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

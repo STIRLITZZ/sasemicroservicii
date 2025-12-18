@@ -174,17 +174,42 @@ app.get("/api/cases", async (req, res) => {
     const data = await fs.readFile(ENRICHED_FILE, "utf-8");
     const cases = JSON.parse(data);
 
-    // Opțional: filtrare și paginare
+    // Filtrare pe interval de date (dacă e specificat)
+    let filtered = cases;
+    const startDate = req.query.start_date;
+    const endDate = req.query.end_date;
+
+    if (startDate || endDate) {
+      filtered = cases.filter(c => {
+        // Verifică dacă cazul are dată de înregistrare
+        const caseDate = c.data_inregistrare || c.data_publicare;
+        if (!caseDate) return false;
+
+        // Convertește datele în format comparabil (YYYY-MM-DD)
+        const caseDateStr = caseDate.split(' ')[0]; // Ia doar data, fără oră
+
+        // Verifică dacă se încadrează în interval
+        if (startDate && caseDateStr < startDate) return false;
+        if (endDate && caseDateStr > endDate) return false;
+
+        return true;
+      });
+    }
+
+    // Paginare
     const limit = parseInt(req.query.limit) || 1000;
     const offset = parseInt(req.query.offset) || 0;
 
-    const filtered = cases.slice(offset, offset + limit);
+    const paginated = filtered.slice(offset, offset + limit);
 
     res.json({
-      total: cases.length,
+      total: filtered.length,
+      total_unfiltered: cases.length,
       limit,
       offset,
-      cases: filtered
+      start_date: startDate || null,
+      end_date: endDate || null,
+      cases: paginated
     });
   } catch (e) {
     if (e.code === "ENOENT") {
